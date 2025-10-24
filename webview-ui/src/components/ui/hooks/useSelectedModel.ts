@@ -50,8 +50,8 @@ import {
 	featherlessDefaultModelId,
 	ioIntelligenceDefaultModelId,
 	ioIntelligenceModels,
-	rooDefaultModelId,
-	rooModels,
+	founderXAIDefaultModelId,
+	founderXAIModels,
 	BEDROCK_CLAUDE_SONNET_4_MODEL_ID,
 } from "@roo-code/types"
 
@@ -305,9 +305,9 @@ function getSelectedModel({
 				routerModels["io-intelligence"]?.[id] ?? ioIntelligenceModels[id as keyof typeof ioIntelligenceModels]
 			return { id, info }
 		}
-		case "roo": {
-			const id = apiConfiguration.apiModelId ?? rooDefaultModelId
-			const info = rooModels[id as keyof typeof rooModels]
+		case "founder-x-ai": {
+			const id = apiConfiguration.apiModelId ?? founderXAIDefaultModelId
+			const info = founderXAIModels[id as keyof typeof founderXAIModels]
 			return { id, info }
 		}
 		// case "anthropic":

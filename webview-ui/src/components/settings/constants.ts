@@ -18,7 +18,7 @@ import {
 	doubaoModels,
 	internationalZAiModels,
 	fireworksModels,
-	rooModels,
+	founderXAIModels,
 	featherlessModels,
 } from "@roo-code/types"
 
@@ -40,7 +40,7 @@ export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, Mod
 	sambanova: sambaNovaModels,
 	zai: internationalZAiModels,
 	fireworks: fireworksModels,
-	roo: rooModels,
+	"founder-x-ai": founderXAIModels,
 	featherless: featherlessModels,
 }
 
@@ -75,5 +75,5 @@ export const PROVIDERS = [
 	{ value: "fireworks", label: "Fireworks AI" },
 	{ value: "featherless", label: "Featherless AI" },
 	{ value: "io-intelligence", label: "IO Intelligence" },
-	{ value: "roo", label: "Roo Code Cloud" },
+	{ value: "founder-x-ai", label: "Founder-X AI" },
 ].sort((a, b) => a.label.localeCompare(b.label))

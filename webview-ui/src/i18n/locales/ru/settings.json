@@ -767,7 +767,7 @@
 		"useCustomModel": "Использовать пользовательскую: {{modelId}}"
 	},
 	"footer": {
-		"feedback": "Если у вас есть вопросы или предложения, откройте issue на <githubLink>github.com/RooCodeInc/Roo-Code</githubLink> или присоединяйтесь к <redditLink>reddit.com/r/RooCode</redditLink> или <discordLink>discord.gg/roocode</discordLink>",
+		"feedback": "Если у вас есть вопросы или предложения, откройте issue на <githubLink>github.com/Founder-X-AI/Founder-X-AI</githubLink> или присоединяйтесь к <redditLink>reddit.com/r/FounderXAI</redditLink> или <discordLink>discord.gg/founder-x-ai</discordLink>",
 		"telemetry": {
 			"label": "Разрешить анонимную отправку ошибок и статистики использования",
 			"description": "Помогите улучшить Roo Code, отправляя анонимные данные об ошибках и использовании. Код, подсказки и личная информация не отправляются. Подробнее — в политике конфиденциальности."
