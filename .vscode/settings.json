@@ -10,5 +10,12 @@
 	},
 	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
 	"typescript.tsc.autoDetect": "off",
-	"vitest.disableWorkspaceWarning": true
+	"vitest.disableWorkspaceWarning": true,
+	"python-envs.pythonProjects": [
+		{
+			"path": "",
+			"envManager": "ms-python.python:system",
+			"packageManager": "ms-python.python:pip"
+		}
+	]
 }

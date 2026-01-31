@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build)",
+      "Bash(pnpm bundle:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm --filter founder-x-ai bundle:*)",
+      "Bash(pnpm --filter founder-x-ai vsix:*)",
+      "Bash(npx grep:*)",
+      "Bash(test:*)",
+      "Bash(pnpm test:*)",
+      "Bash(npx vitest:*)",
+      "Bash(unzip:*)",
+      "Bash(code --install-extension:*)",
+      "Bash(find:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(timeout 30 pnpm tsc:*)",
+      "Bash(cat:*)",
+      "Read(//e/coding-bai-guard/**)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx esbuild-visualizer:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(docker exec:*)",
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(docker inspect:*)",
+      "Bash(echo:*)",
+      "Bash(docker ps:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsx:*)",
+      "Bash(docker start:*)",
+      "Bash(docker run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

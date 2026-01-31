@@ -1,4 +1,4 @@
-import type { CommandId, CodeActionId, TerminalActionId } from "@roo-code/types"
+import type { CommandId, CodeActionId, TerminalActionId } from "@founder-x-ai/types"
 
 import { Package } from "../shared/package"
 

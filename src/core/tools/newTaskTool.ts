@@ -1,7 +1,7 @@
 import delay from "delay"
 import * as vscode from "vscode"
 
-import { RooCodeEventName, TodoItem } from "@roo-code/types"
+import { RooCodeEventName, TodoItem } from "@founder-x-ai/types"
 
 import { ToolUse, AskApproval, HandleError, PushToolResult, RemoveClosingTag } from "../../shared/tools"
 import { Task } from "../task/Task"

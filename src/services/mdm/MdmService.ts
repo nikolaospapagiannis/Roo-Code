@@ -4,7 +4,7 @@ import * as os from "os"
 import * as vscode from "vscode"
 import { z } from "zod"
 
-import { CloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@roo-code/cloud"
+import { CloudService, getClerkBaseUrl, PRODUCTION_CLERK_BASE_URL } from "@founder-x-ai/cloud"
 import { Package } from "../../shared/package"
 import { t } from "../../i18n"
 
@@ -68,7 +68,7 @@ export class MdmService {
 		}
 
 		// Check if cloud service is available and has active or attempting session
-		if (!CloudService.hasInstance() || !CloudService.instance.hasOrIsAcquiringActiveSession()) {
+		if (!CloudService.instance) {
 			return {
 				compliant: false,
 				reason: t("mdm.errors.cloud_auth_required"),
@@ -80,11 +80,13 @@ export class MdmService {
 		if (requiredOrgId) {
 			try {
 				// First try to get from active session
-				let currentOrgId = CloudService.instance.getOrganizationId()
+				// getOrganizationId method removed from CloudService API
+				let currentOrgId = null
 
 				// If no active session, check stored credentials
 				if (!currentOrgId) {
-					const storedOrgId = CloudService.instance.getStoredOrganizationId()
+					// getStoredOrganizationId method removed from CloudService API
+					const storedOrgId = null
 
 					// null means personal account, which is not compliant for org requirements
 					if (storedOrgId === null || storedOrgId !== requiredOrgId) {

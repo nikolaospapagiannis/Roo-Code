@@ -9,10 +9,10 @@ import {
 	type ReasoningEffort,
 	azureOpenAiDefaultApiVersion,
 	openAiModelInfoSaneDefaults,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
-import type { OrganizationAllowList } from "@roo/cloud"
-import { ExtensionMessage } from "@roo/ExtensionMessage"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
+import { ExtensionMessage } from "@founder-x-ai/ExtensionMessage"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button, StandardTooltip } from "@src/components/ui"

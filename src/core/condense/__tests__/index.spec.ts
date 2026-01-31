@@ -2,7 +2,7 @@
 
 import type { Mock } from "vitest"
 
-import { TelemetryService } from "@roo-code/telemetry"
+import { TelemetryService } from "@founder-x-ai/telemetry"
 
 import { ApiHandler } from "../../../api"
 import { ApiMessage } from "../../task-persistence/apiMessages"
@@ -13,7 +13,7 @@ vi.mock("../../../api/transform/image-cleaning", () => ({
 	maybeRemoveImageBlocks: vi.fn((messages: ApiMessage[], _apiHandler: ApiHandler) => [...messages]),
 }))
 
-vi.mock("@roo-code/telemetry", () => ({
+vi.mock("@founder-x-ai/telemetry", () => ({
 	TelemetryService: {
 		instance: {
 			captureContextCondensed: vi.fn(),

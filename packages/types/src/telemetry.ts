@@ -66,6 +66,12 @@ export enum TelemetryEventName {
 	SHELL_INTEGRATION_ERROR = "Shell Integration Error",
 	CONSECUTIVE_MISTAKE_ERROR = "Consecutive Mistake Error",
 	CODE_INDEX_ERROR = "Code Index Error",
+
+	// ExAI Guard events
+	EXAI_GUARD_VIOLATION_DETECTED = "ExAI Guard Violation Detected",
+	EXAI_GUARD_VIOLATION_CORRECTED = "ExAI Guard Violation Corrected",
+	EXAI_GUARD_SCAN_COMPLETED = "ExAI Guard Scan Completed",
+	EXAI_GUARD_ACTION = "ExAI Guard Action",
 }
 
 /**

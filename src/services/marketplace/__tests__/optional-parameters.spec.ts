@@ -1,4 +1,4 @@
-import { mcpParameterSchema } from "@roo-code/types"
+import { mcpParameterSchema } from "@founder-x-ai/types"
 
 describe("Optional Parameters", () => {
 	describe("McpParameter Schema", () => {

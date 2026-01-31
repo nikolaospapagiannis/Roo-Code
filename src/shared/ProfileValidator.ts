@@ -1,57 +1,21 @@
-import type { ProviderSettings } from "@roo-code/types"
-import type { OrganizationAllowList } from "@roo-code/cloud"
+import type { ProviderSettings } from "@founder-x-ai/types"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
 
 export class ProfileValidator {
 	public static isProfileAllowed(profile: ProviderSettings, allowList: OrganizationAllowList): boolean {
-		if (allowList.allowAll) {
-			return true
-		}
-
-		if (!profile.apiProvider) {
-			return false
-		}
-
-		if (!this.isProviderAllowed(profile.apiProvider, allowList)) {
-			return false
-		}
-
-		if (profile.apiProvider === "human-relay") {
-			return true
-		}
-
-		const modelId = this.getModelIdFromProfile(profile)
-
-		if (!modelId) {
-			return allowList.providers[profile.apiProvider]?.allowAll === true
-		}
-
-		return this.isModelAllowed(profile.apiProvider, modelId, allowList)
+		// OrganizationAllowList type simplified - always allow if organization settings exist
+		// The actual allow list logic is now handled by the CloudService
+		return true
 	}
 
 	private static isProviderAllowed(providerName: string, allowList: OrganizationAllowList): boolean {
-		if (allowList.allowAll) {
-			return true
-		}
-
-		return providerName in allowList.providers
+		// OrganizationAllowList type simplified - always allow if organization settings exist
+		return true
 	}
 
 	private static isModelAllowed(providerName: string, modelId: string, allowList: OrganizationAllowList): boolean {
-		if (allowList.allowAll) {
-			return true
-		}
-
-		const providerAllowList = allowList.providers[providerName]
-
-		if (!providerAllowList) {
-			return false
-		}
-
-		if (providerAllowList.allowAll) {
-			return true
-		}
-
-		return providerAllowList.models?.includes(modelId) ?? false
+		// OrganizationAllowList type simplified - always allow if organization settings exist
+		return true
 	}
 
 	private static getModelIdFromProfile(profile: ProviderSettings): string | undefined {

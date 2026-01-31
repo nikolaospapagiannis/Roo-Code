@@ -1,10 +1,10 @@
 import { useCallback } from "react"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
-import { type ProviderSettings, glamaDefaultModelId } from "@roo-code/types"
+import { type ProviderSettings, glamaDefaultModelId } from "@founder-x-ai/types"
 
-import type { OrganizationAllowList } from "@roo/cloud"
-import type { RouterModels } from "@roo/api"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
+import type { RouterModels } from "@founder-x-ai/api"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { getGlamaAuthUrl } from "@src/oauth/urls"

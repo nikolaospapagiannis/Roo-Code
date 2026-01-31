@@ -12,8 +12,8 @@ try {
 	console.warn("Failed to load environment variables:", e)
 }
 
-import { CloudService, ExtensionBridgeService } from "@roo-code/cloud"
-import { TelemetryService, PostHogTelemetryClient } from "@roo-code/telemetry"
+import { CloudService, ExtensionBridgeService } from "@founder-x-ai/cloud"
+import { TelemetryService, PostHogTelemetryClient } from "@founder-x-ai/telemetry"
 
 import "./utils/path" // Necessary to have access to String.prototype.toPosix.
 import { createOutputChannelLogger, createDualLogger } from "./utils/outputChannelLogger"
@@ -27,6 +27,7 @@ import { TerminalRegistry } from "./integrations/terminal/TerminalRegistry"
 import { McpServerManager } from "./services/mcp/McpServerManager"
 import { CodeIndexManager } from "./services/code-index/manager"
 import { MdmService } from "./services/mdm/MdmService"
+import { ExAIGuardService } from "./services/exai-guard/ExAIGuardService"
 import { migrateSettings } from "./utils/migrateSettings"
 import { autoImportSettings } from "./utils/autoImportSettings"
 import { isRemoteControlEnabled } from "./utils/remoteControl"
@@ -113,44 +114,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}
 
-	// Initialize Roo Code Cloud service.
-	const cloudService = await CloudService.createInstance(context, cloudLogger)
-
-	try {
-		if (cloudService.telemetryClient) {
-			TelemetryService.instance.register(cloudService.telemetryClient)
-		}
-	} catch (error) {
-		outputChannel.appendLine(
-			`[CloudService] Failed to register TelemetryClient: ${error instanceof Error ? error.message : String(error)}`,
-		)
-	}
-
+	// CloudService integration temporarily disabled due to API changes
 	const postStateListener = () => ClineProvider.getVisibleInstance()?.postStateToWebview()
 
-	cloudService.on("auth-state-changed", postStateListener)
-	cloudService.on("settings-updated", postStateListener)
-
-	cloudService.on("user-info", async ({ userInfo }) => {
-		postStateListener()
-
-		const bridgeConfig = await cloudService.cloudAPI?.bridgeConfig().catch(() => undefined)
-
-		if (!bridgeConfig) {
-			outputChannel.appendLine("[CloudService] Failed to get bridge config")
-			return
-		}
-
-		ExtensionBridgeService.handleRemoteControlState(
-			userInfo,
-			contextProxy.getValue("remoteControlEnabled"),
-			{ ...bridgeConfig, provider, sessionId: vscode.env.sessionId },
-			(message: string) => outputChannel.appendLine(message),
-		)
-	})
-
-	// Add to subscriptions for proper cleanup on deactivate.
-	context.subscriptions.push(cloudService)
+	// Initialize ExAI Guard Service singleton
+	// This creates the singleton instance that will be used by Task.ts for stream interception
+	ExAIGuardService.getInstance()
+	outputChannel.appendLine("[ExAI Guard] Service initialized and ready for stream interception")
 
 	const provider = new ClineProvider(context, outputChannel, "sidebar", contextProxy, mdmService)
 	TelemetryService.instance.setProvider(provider)
@@ -227,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			{ path: context.extensionPath, pattern: "**/*.ts" },
 			{ path: path.join(context.extensionPath, "../packages/types"), pattern: "**/*.ts" },
 			{ path: path.join(context.extensionPath, "../packages/telemetry"), pattern: "**/*.ts" },
-			{ path: path.join(context.extensionPath, "node_modules/@roo-code/cloud"), pattern: "**/*" },
+			{ path: path.join(context.extensionPath, "node_modules/@founder-x-ai/cloud"), pattern: "**/*" },
 		]
 
 		console.log(
@@ -280,11 +250,7 @@ export async function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
 	outputChannel.appendLine(`${Package.name} extension deactivated`)
 
-	const bridgeService = ExtensionBridgeService.getInstance()
-
-	if (bridgeService) {
-		await bridgeService.disconnect()
-	}
+	// ExtensionBridgeService integration temporarily disabled due to API changes
 
 	await McpServerManager.cleanup(extensionContext)
 	TelemetryService.instance.shutdown()

@@ -3,10 +3,10 @@ import { Trans } from "react-i18next"
 import { Checkbox } from "vscrui"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
-import { type ProviderSettings, openRouterDefaultModelId } from "@roo-code/types"
+import { type ProviderSettings, openRouterDefaultModelId } from "@founder-x-ai/types"
 
-import type { OrganizationAllowList } from "@roo/cloud"
-import type { RouterModels } from "@roo/api"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
+import type { RouterModels } from "@founder-x-ai/api"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { getOpenRouterAuthUrl } from "@src/oauth/urls"

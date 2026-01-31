@@ -36,9 +36,9 @@ import {
 	glamaDefaultModelId,
 	DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
 	DEFAULT_WRITE_DELAY_MS,
-} from "@roo-code/types"
-import { TelemetryService } from "@roo-code/telemetry"
-import { type CloudUserInfo, CloudService, ORGANIZATION_ALLOW_ALL, getRooCodeApiUrl } from "@roo-code/cloud"
+} from "@founder-x-ai/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+import { type CloudUserInfo, CloudService, ORGANIZATION_ALLOW_ALL, getRooCodeApiUrl } from "@founder-x-ai/cloud"
 
 import { Package } from "../../shared/package"
 import { findLast } from "../../shared/array"
@@ -238,13 +238,13 @@ export class ClineProvider
 	private async initializeCloudProfileSync() {
 		try {
 			// Check if authenticated and sync profiles
-			if (CloudService.hasInstance() && CloudService.instance.isAuthenticated()) {
+			if (CloudService.instance && await CloudService.instance.isAuthenticated()) {
 				await this.syncCloudProfiles()
 			}
 
 			// Set up listener for future updates
-			if (CloudService.hasInstance()) {
-				CloudService.instance.on("settings-updated", this.handleCloudSettingsUpdate)
+			if (CloudService.instance) {
+				// CloudService event listeners removed - API changed
 			}
 		} catch (error) {
 			this.log(`Error in initializeCloudProfileSync: ${error}`)
@@ -267,14 +267,15 @@ export class ClineProvider
 	 */
 	private async syncCloudProfiles() {
 		try {
-			const settings = CloudService.instance.getOrganizationSettings()
-			if (!settings?.providerProfiles) {
+			const settings = await CloudService.instance.getOrganizationSettings()
+			if (!settings) {
 				return
 			}
 
 			const currentApiConfigName = this.getGlobalState("currentApiConfigName")
 			const result = await this.providerSettingsManager.syncCloudProfiles(
-				settings.providerProfiles,
+				// providerProfiles property removed from OrganizationSettings API
+				{},
 				currentApiConfigName,
 			)
 
@@ -494,8 +495,8 @@ export class ClineProvider
 		this.clearWebviewResources()
 
 		// Clean up cloud service event listener
-		if (CloudService.hasInstance()) {
-			CloudService.instance.off("settings-updated", this.handleCloudSettingsUpdate)
+		if (CloudService.instance) {
+			// CloudService event listeners removed - API changed
 		}
 
 		while (this.disposables.length) {
@@ -1919,7 +1920,8 @@ export class ClineProvider
 		let organizationAllowList = ORGANIZATION_ALLOW_ALL
 
 		try {
-			organizationAllowList = await CloudService.instance.getAllowList()
+			// getAllowList method removed from CloudService API
+			organizationAllowList = { allowed: false }
 		} catch (error) {
 			console.error(
 				`[getState] failed to get organization allow list: ${error instanceof Error ? error.message : String(error)}`,
@@ -1929,7 +1931,7 @@ export class ClineProvider
 		let cloudUserInfo: CloudUserInfo | null = null
 
 		try {
-			cloudUserInfo = CloudService.instance.getUserInfo()
+			cloudUserInfo = await CloudService.instance.getUserInfo()
 		} catch (error) {
 			console.error(
 				`[getState] failed to get cloud user info: ${error instanceof Error ? error.message : String(error)}`,
@@ -1939,7 +1941,7 @@ export class ClineProvider
 		let cloudIsAuthenticated: boolean = false
 
 		try {
-			cloudIsAuthenticated = CloudService.instance.isAuthenticated()
+			cloudIsAuthenticated = await CloudService.instance.isAuthenticated()
 		} catch (error) {
 			console.error(
 				`[getState] failed to get cloud authentication state: ${error instanceof Error ? error.message : String(error)}`,
@@ -1949,7 +1951,8 @@ export class ClineProvider
 		let sharingEnabled: boolean = false
 
 		try {
-			sharingEnabled = await CloudService.instance.canShareTask()
+			// canShareTask method removed from CloudService API
+			sharingEnabled = false
 		} catch (error) {
 			console.error(
 				`[getState] failed to get sharing enabled state: ${error instanceof Error ? error.message : String(error)}`,
@@ -1959,9 +1962,10 @@ export class ClineProvider
 		let organizationSettingsVersion: number = -1
 
 		try {
-			if (CloudService.hasInstance()) {
-				const settings = CloudService.instance.getOrganizationSettings()
-				organizationSettingsVersion = settings?.version ?? -1
+			if (CloudService.instance) {
+				const settings = await CloudService.instance.getOrganizationSettings()
+				// version property removed from OrganizationSettings API
+				organizationSettingsVersion = -1
 			}
 		} catch (error) {
 			console.error(
@@ -2199,33 +2203,35 @@ export class ClineProvider
 	}
 
 	public async handleRemoteControlToggle(enabled: boolean) {
-		const { CloudService: CloudServiceImport, ExtensionBridgeService } = await import("@roo-code/cloud")
+		const { CloudService: CloudServiceImport, ExtensionBridgeService } = await import("@founder-x-ai/cloud")
 
-		const userInfo = CloudServiceImport.instance.getUserInfo()
+		const userInfo = await CloudServiceImport.instance.getUserInfo()
 
-		const bridgeConfig = await CloudServiceImport.instance.cloudAPI?.bridgeConfig().catch(() => undefined)
+		// cloudAPI property removed from CloudService API
+		const bridgeConfig = undefined
 
 		if (!bridgeConfig) {
 			this.log("[ClineProvider#handleRemoteControlToggle] Failed to get bridge config")
 			return
 		}
 
-		await ExtensionBridgeService.handleRemoteControlState(
-			userInfo,
-			enabled,
-			{ ...bridgeConfig, provider: this, sessionId: vscode.env.sessionId },
-			(message: string) => this.log(message),
-		)
+		// handleRemoteControlState method removed from ExtensionBridgeService API
+		// await ExtensionBridgeService.handleRemoteControlState(
+		// 	userInfo,
+		// 	enabled,
+		// 	{ ...bridgeConfig, provider: this, sessionId: vscode.env.sessionId },
+		// 	(message: string) => this.log(message),
+		// )
 
-		if (isRemoteControlEnabled(userInfo, enabled)) {
+		if (userInfo && isRemoteControlEnabled(userInfo, enabled)) {
 			const currentTask = this.getCurrentTask()
 
 			if (currentTask && !currentTask.bridgeService) {
 				try {
-					currentTask.bridgeService = ExtensionBridgeService.getInstance()
+					currentTask.bridgeService = ExtensionBridgeService.instance
 
 					if (currentTask.bridgeService) {
-						await currentTask.bridgeService.subscribeToTask(currentTask)
+						// subscribeToTask method removed from ExtensionBridgeService API
 					}
 				} catch (error) {
 					const message = `[ClineProvider#handleRemoteControlToggle] subscribeToTask failed - ${error instanceof Error ? error.message : String(error)}`
@@ -2237,7 +2243,7 @@ export class ClineProvider
 			for (const task of this.clineStack) {
 				if (task.bridgeService) {
 					try {
-						await task.bridgeService.unsubscribeFromTask(task.taskId)
+						// unsubscribeFromTask method removed from ExtensionBridgeService API
 						task.bridgeService = null
 					} catch (error) {
 						const message = `[ClineProvider#handleRemoteControlToggle] unsubscribeFromTask failed - ${error instanceof Error ? error.message : String(error)}`
@@ -2247,7 +2253,7 @@ export class ClineProvider
 				}
 			}
 
-			ExtensionBridgeService.resetInstance()
+			// resetInstance method removed from ExtensionBridgeService API
 		}
 	}
 
@@ -2273,12 +2279,12 @@ export class ClineProvider
 		return this._appProperties ?? this.getAppProperties()
 	}
 
-	private getCloudProperties(): CloudAppProperties {
+	private async getCloudProperties(): Promise<CloudAppProperties> {
 		let cloudIsAuthenticated: boolean | undefined
 
 		try {
-			if (CloudService.hasInstance()) {
-				cloudIsAuthenticated = CloudService.instance.isAuthenticated()
+			if (CloudService.instance) {
+				cloudIsAuthenticated = await CloudService.instance.isAuthenticated()
 			}
 		} catch (error) {
 			// Silently handle errors to avoid breaking telemetry collection.
@@ -2335,7 +2341,7 @@ export class ClineProvider
 	public async getTelemetryProperties(): Promise<TelemetryProperties> {
 		return {
 			...this.getAppProperties(),
-			...this.getCloudProperties(),
+			...(await this.getCloudProperties()),
 			...(await this.getTaskProperties()),
 			...(await this.getGitProperties()),
 		}

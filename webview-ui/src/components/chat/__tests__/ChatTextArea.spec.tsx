@@ -1,6 +1,6 @@
 import { render, fireEvent, screen } from "@/utils/test-utils"
 
-import { defaultModeSlug } from "@roo/modes"
+import { defaultModeSlug } from "@founder-x-ai/modes"
 
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { vscode } from "@src/utils/vscode"

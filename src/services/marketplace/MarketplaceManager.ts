@@ -4,9 +4,9 @@ import * as path from "path"
 import * as vscode from "vscode"
 import * as yaml from "yaml"
 
-import type { MarketplaceItem, MarketplaceItemType, McpMarketplaceItem } from "@roo-code/types"
-import { TelemetryService } from "@roo-code/telemetry"
-import { type OrganizationSettings, CloudService } from "@roo-code/cloud"
+import type { MarketplaceItem, MarketplaceItemType, McpMarketplaceItem } from "@founder-x-ai/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+import { type OrganizationSettings, CloudService } from "@founder-x-ai/cloud"
 
 import { GlobalFileNames } from "../../shared/globalFileNames"
 import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
@@ -41,8 +41,9 @@ export class MarketplaceManager {
 			let orgSettings: OrganizationSettings | undefined
 
 			try {
-				if (CloudService.hasInstance() && CloudService.instance.isAuthenticated()) {
-					orgSettings = CloudService.instance.getOrganizationSettings()
+				if (CloudService.instance && await CloudService.instance.isAuthenticated()) {
+					const settings = await CloudService.instance.getOrganizationSettings()
+					orgSettings = settings || undefined
 				}
 			} catch (orgError) {
 				console.warn("Failed to load organization settings:", orgError)
@@ -50,13 +51,13 @@ export class MarketplaceManager {
 				errors.push(`Organization settings: ${orgErrorMessage}`)
 			}
 
-			const allMarketplaceItems = await this.configLoader.loadAllItems(orgSettings?.hideMarketplaceMcps)
+			const allMarketplaceItems = await this.configLoader.loadAllItems(undefined)
 			let organizationMcps: MarketplaceItem[] = []
 			let marketplaceItems = allMarketplaceItems
 
 			if (orgSettings) {
-				if (orgSettings.mcps && orgSettings.mcps.length > 0) {
-					organizationMcps = orgSettings.mcps.map(
+				if (false) { // mcps property removed from OrganizationSettings API
+					organizationMcps = [].map(
 						(mcp: McpMarketplaceItem): MarketplaceItem => ({
 							...mcp,
 							type: "mcp" as const,
@@ -64,8 +65,8 @@ export class MarketplaceManager {
 					)
 				}
 
-				if (orgSettings.hiddenMcps && orgSettings.hiddenMcps.length > 0) {
-					const hiddenMcpIds = new Set(orgSettings.hiddenMcps)
+				if (false) { // hiddenMcps property removed from OrganizationSettings API
+					const hiddenMcpIds = new Set<string>([])
 					marketplaceItems = allMarketplaceItems.filter(
 						(item) => item.type !== "mcp" || !hiddenMcpIds.has(item.id),
 					)

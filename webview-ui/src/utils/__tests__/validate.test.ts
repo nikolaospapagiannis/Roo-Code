@@ -1,7 +1,7 @@
-import type { ProviderSettings } from "@roo-code/types"
+import type { ProviderSettings } from "@founder-x-ai/types"
 
-import type { OrganizationAllowList } from "@roo/cloud"
-import { RouterModels } from "@roo/api"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
+import { RouterModels } from "@founder-x-ai/api"
 
 import { getModelValidationError, validateApiConfigurationExcludingModelErrors } from "../validate"
 

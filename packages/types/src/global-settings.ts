@@ -148,6 +148,21 @@ export const globalSettingsSchema = z.object({
 	hasOpenedModeSelector: z.boolean().optional(),
 	lastModeExportPath: z.string().optional(),
 	lastModeImportPath: z.string().optional(),
+	
+	// ExAI Guard settings
+	exaiGuardEnabled: z.boolean().optional(),
+	exaiGuardRealTimeDetection: z.boolean().optional(),
+	exaiGuardAutoCorrection: z.boolean().optional(),
+	exaiGuardViolationTypes: z.object({
+	  security: z.boolean().optional(),
+	  privacy: z.boolean().optional(),
+	  compliance: z.boolean().optional(),
+	  ethical: z.boolean().optional(),
+	  quality: z.boolean().optional(),
+	}).optional(),
+	exaiGuardSeverityThreshold: z.enum(["low", "medium", "high", "critical"]).optional(),
+	exaiGuardNotificationEnabled: z.boolean().optional(),
+	exaiGuardLoggingEnabled: z.boolean().optional(),
 })
 
 export type GlobalSettings = z.infer<typeof globalSettingsSchema>
@@ -300,6 +315,21 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	mode: "code", // "architect",
 
 	customModes: [],
+
+	// ExAI Guard default settings
+	exaiGuardEnabled: true,
+	exaiGuardRealTimeDetection: true,
+	exaiGuardAutoCorrection: true,
+	exaiGuardViolationTypes: {
+	  security: true,
+	  privacy: true,
+	  compliance: true,
+	  ethical: true,
+	  quality: true,
+	},
+	exaiGuardSeverityThreshold: "medium",
+	exaiGuardNotificationEnabled: true,
+	exaiGuardLoggingEnabled: true,
 }
 
 export const EVALS_TIMEOUT = 5 * 60 * 1_000

@@ -7,19 +7,19 @@ import {
 	type ModeConfig,
 	type ExperimentId,
 	type TodoItem,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
-import { type OrganizationAllowList, ORGANIZATION_ALLOW_ALL } from "@roo/cloud"
+import { type OrganizationAllowList, ORGANIZATION_ALLOW_ALL } from "@founder-x-ai/cloud"
 
-import { ExtensionMessage, ExtensionState, MarketplaceInstalledMetadata, Command } from "@roo/ExtensionMessage"
-import { findLastIndex } from "@roo/array"
-import { McpServer } from "@roo/mcp"
-import { checkExistKey } from "@roo/checkExistApiConfig"
-import { Mode, defaultModeSlug, defaultPrompts } from "@roo/modes"
-import { CustomSupportPrompts } from "@roo/support-prompt"
-import { experimentDefault } from "@roo/experiments"
-import { TelemetrySetting } from "@roo/TelemetrySetting"
-import { RouterModels } from "@roo/api"
+import { ExtensionMessage, ExtensionState, MarketplaceInstalledMetadata, Command } from "@founder-x-ai/ExtensionMessage"
+import { findLastIndex } from "@founder-x-ai/array"
+import { McpServer } from "@founder-x-ai/mcp"
+import { checkExistKey } from "@founder-x-ai/checkExistApiConfig"
+import { Mode, defaultModeSlug, defaultPrompts } from "@founder-x-ai/modes"
+import { CustomSupportPrompts } from "@founder-x-ai/support-prompt"
+import { experimentDefault } from "@founder-x-ai/experiments"
+import { TelemetrySetting } from "@founder-x-ai/TelemetrySetting"
+import { RouterModels } from "@founder-x-ai/api"
 
 import { vscode } from "@src/utils/vscode"
 import { convertTextMateToHljs } from "@src/utils/textMateToHljs"

@@ -1,6 +1,6 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { Package } from "@roo/package"
+import { Package } from "@founder-x-ai/package"
 
 interface VersionIndicatorProps {
 	onClick: () => void

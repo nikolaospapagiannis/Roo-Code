@@ -12,9 +12,9 @@ import {
 	type GlobalState,
 	type ClineMessage,
 	TelemetryEventName,
-} from "@roo-code/types"
-import { CloudService } from "@roo-code/cloud"
-import { TelemetryService } from "@roo-code/telemetry"
+} from "@founder-x-ai/types"
+import { CloudService } from "@founder-x-ai/cloud"
+import { TelemetryService } from "@founder-x-ai/telemetry"
 import { type ApiMessage } from "../task-persistence/apiMessages"
 
 import { ClineProvider } from "./ClineProvider"
@@ -55,6 +55,8 @@ const ALLOWED_VSCODE_SETTINGS = new Set(["terminal.integrated.inheritEnv"])
 
 import { MarketplaceManager, MarketplaceItemType } from "../../services/marketplace"
 import { setPendingTodoList } from "../tools/updateTodoListTool"
+import { ExAIGuardService } from "../../services/exai-guard/ExAIGuardService"
+import { ExAIGuardViolation } from "../../services/exai-guard/ExAIGuardService"
 
 export const webviewMessageHandler = async (
 	provider: ClineProvider,
@@ -289,6 +291,45 @@ export const webviewMessageHandler = async (
 			// agentically running promises in old instance don't affect our new
 			// task. This essentially creates a fresh slate for the new task.
 			try {
+				// Check for violations in the task content
+				const exaiGuardService = ExAIGuardService.getInstance()
+				if (exaiGuardService.isRealTimeDetectionEnabled() && message.text) {
+					const violations = exaiGuardService.scanContent(message.text, {
+						taskId: "new",
+						messageType: "newTask"
+					})
+					
+					if (violations.length > 0) {
+						// Send violations to webview for display
+						await provider.postMessageToWebview({
+							type: "exaiGuardViolations",
+							violations,
+							context: "newTask"
+						})
+						
+						// Apply auto-correction if enabled
+						if (exaiGuardService.isAutoCorrectionEnabled()) {
+							let correctedText = message.text
+							let correctionsApplied = false
+							
+							for (const violation of violations) {
+								if (violation.correction?.autoCorrectable) {
+									const result = exaiGuardService.applyCorrection(violation, correctedText)
+									if (result.wasApplied) {
+										correctedText = result.correctedContent
+										correctionsApplied = true
+									}
+								}
+							}
+							
+							if (correctionsApplied) {
+								// Update the message with corrected content
+								message.text = correctedText
+							}
+						}
+					}
+				}
+				
 				await provider.createTask(message.text, message.images)
 				// Task created successfully - notify the UI to reset
 				await provider.postMessageToWebview({
@@ -363,6 +404,45 @@ export const webviewMessageHandler = async (
 			await provider.postStateToWebview()
 			break
 		case "askResponse":
+			// Check for violations in AI response content
+			const exaiGuardService = ExAIGuardService.getInstance()
+			if (exaiGuardService.isRealTimeDetectionEnabled() && message.text) {
+				const violations = exaiGuardService.scanContent(message.text, {
+					taskId: provider.getCurrentTask()?.taskId || "unknown",
+					messageType: "aiResponse"
+				})
+				
+				if (violations.length > 0) {
+					// Send violations to webview for display
+					await provider.postMessageToWebview({
+						type: "exaiGuardViolations",
+						violations,
+						context: "aiResponse"
+					})
+					
+					// Apply auto-correction if enabled
+					if (exaiGuardService.isAutoCorrectionEnabled()) {
+						let correctedText = message.text
+						let correctionsApplied = false
+						
+						for (const violation of violations) {
+							if (violation.correction?.autoCorrectable) {
+								const result = exaiGuardService.applyCorrection(violation, correctedText)
+								if (result.wasApplied) {
+									correctedText = result.correctedContent
+									correctionsApplied = true
+								}
+							}
+						}
+						
+						if (correctionsApplied) {
+							// Update the message with corrected content
+							message.text = correctedText
+						}
+					}
+				}
+			}
+			
 			provider.getCurrentTask()?.handleWebviewAskResponse(message.askResponse!, message.text, message.images)
 			break
 		case "autoCondenseContext":
@@ -424,12 +504,13 @@ export const webviewMessageHandler = async (
 
 			try {
 				const visibility = message.visibility || "organization"
-				const result = await CloudService.instance.shareTask(shareTaskId, visibility, clineMessages)
+				// shareTask method removed from CloudService API
+				const result = { success: false, error: "Sharing not available" }
 
-				if (result.success && result.shareUrl) {
+				if (result.success) {
 					// Show success notification
 					const messageKey =
-						visibility === "public"
+						visibility === "public" as any
 							? "common:info.public_share_link_copied"
 							: "common:info.organization_share_link_copied"
 					vscode.window.showInformationMessage(t(messageKey))
@@ -437,8 +518,8 @@ export const webviewMessageHandler = async (
 					// Send success feedback to webview for inline display
 					await provider.postMessageToWebview({
 						type: "shareTaskSuccess",
-						visibility,
-						text: result.shareUrl,
+						visibility: visibility as any,
+						text: "",
 					})
 				} else {
 					// Handle error
@@ -2016,7 +2097,8 @@ export const webviewMessageHandler = async (
 		case "rooCloudSignIn": {
 			try {
 				TelemetryService.instance.captureEvent(TelemetryEventName.AUTHENTICATION_INITIATED)
-				await CloudService.instance.login()
+				// login method removed from CloudService API
+				provider.log("CloudService login not available")
 			} catch (error) {
 				provider.log(`AuthService#login failed: ${error}`)
 				vscode.window.showErrorMessage("Sign in failed.")
@@ -2026,7 +2108,8 @@ export const webviewMessageHandler = async (
 		}
 		case "rooCloudSignOut": {
 			try {
-				await CloudService.instance.logout()
+				// logout method removed from CloudService API
+				provider.log("CloudService logout not available")
 				await provider.postStateToWebview()
 				provider.postMessageToWebview({ type: "authenticatedUser", userInfo: undefined })
 			} catch (error) {
@@ -2638,6 +2721,44 @@ export const webviewMessageHandler = async (
 		case "showMdmAuthRequiredNotification": {
 			// Show notification that organization requires authentication
 			vscode.window.showWarningMessage(t("common:mdm.info.organization_requires_auth"))
+			break
+		}
+		case "exaiGuardConfig": {
+			// Handle ExAI Guard configuration updates
+			const exaiGuardService = ExAIGuardService.getInstance()
+			if (message.values) {
+				await exaiGuardService.updateConfig(message.values, provider.context)
+				await provider.postMessageToWebview({
+					type: "exaiGuardConfigUpdated",
+					success: true
+				})
+			}
+			break
+		}
+		case "exaiGuardApplyCorrection": {
+			// Handle manual correction application
+			const exaiGuardService = ExAIGuardService.getInstance()
+			if (message.violationId && message.originalContent) {
+				const violation = exaiGuardService.getViolations().find(v => v.id === message.violationId)
+				if (violation) {
+					const result = exaiGuardService.applyCorrection(violation, message.originalContent)
+					await provider.postMessageToWebview({
+						type: "exaiGuardCorrectionApplied",
+						violationId: message.violationId,
+						correctedContent: result.correctedContent,
+						wasApplied: result.wasApplied
+					})
+				}
+			}
+			break
+		}
+		case "exaiGuardClearViolations": {
+			// Clear all violations
+			const exaiGuardService = ExAIGuardService.getInstance()
+			exaiGuardService.clearViolations()
+			await provider.postMessageToWebview({
+				type: "exaiGuardViolationsCleared"
+			})
 			break
 		}
 	}

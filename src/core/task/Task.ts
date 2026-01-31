@@ -33,9 +33,9 @@ import {
 	isIdleAsk,
 	isInteractiveAsk,
 	isResumableAsk,
-} from "@roo-code/types"
-import { TelemetryService } from "@roo-code/telemetry"
-import { CloudService, ExtensionBridgeService } from "@roo-code/cloud"
+} from "@founder-x-ai/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+import { CloudService, ExtensionBridgeService } from "@founder-x-ai/cloud"
 
 // api
 import { ApiHandler, ApiHandlerCreateMessageMetadata, buildApiHandler } from "../../api"
@@ -48,6 +48,7 @@ import { combineCommandSequences } from "../../shared/combineCommandSequences"
 import { t } from "../../i18n"
 import { ClineApiReqCancelReason, ClineApiReqInfo } from "../../shared/ExtensionMessage"
 import { getApiMetrics } from "../../shared/getApiMetrics"
+import { ExAIGuardService } from "../../services/exai-guard/ExAIGuardService"
 import { ClineAskResponse } from "../../shared/WebviewMessage"
 import { defaultModeSlug } from "../../shared/modes"
 import { DiffStrategy } from "../../shared/tools"
@@ -578,14 +579,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		this.emit(RooCodeEventName.Message, { action: "created", message })
 		await this.saveClineMessages()
 
-		const shouldCaptureMessage = message.partial !== true && CloudService.isEnabled()
-
-		if (shouldCaptureMessage) {
-			CloudService.instance.captureEvent({
-				event: TelemetryEventName.TASK_MESSAGE,
-				properties: { taskId: this.taskId, message },
-			})
-		}
+		// CloudService integration temporarily disabled due to API changes
+		// Telemetry capture will be reimplemented when CloudService API is stable
+		const shouldCaptureMessage = false
 	}
 
 	public async overwriteClineMessages(newMessages: ClineMessage[]) {
@@ -599,14 +595,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		await provider?.postMessageToWebview({ type: "messageUpdated", clineMessage: message })
 		this.emit(RooCodeEventName.Message, { action: "updated", message })
 
-		const shouldCaptureMessage = message.partial !== true && CloudService.isEnabled()
-
-		if (shouldCaptureMessage) {
-			CloudService.instance.captureEvent({
-				event: TelemetryEventName.TASK_MESSAGE,
-				properties: { taskId: this.taskId, message },
-			})
-		}
+		// CloudService integration temporarily disabled due to API changes
+		// Telemetry capture will be reimplemented when CloudService API is stable
+		const shouldCaptureMessage = false
 	}
 
 	private async saveClineMessages() {
@@ -642,6 +633,28 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 
 		return undefined
+	}
+
+	/**
+	 * Add a subtask to the todo list for incomplete code correction
+	 */
+	private async addSubtaskToTodoList(subtask: any): Promise<void> {
+		if (!this.todoList) {
+			this.todoList = []
+		}
+
+		// Add the subtask to the todo list using the correct TodoItem structure
+		this.todoList.push({
+			id: crypto.randomUUID(),
+			content: subtask.title || "Complete incomplete code patterns detected by ExAI Guard",
+			status: "pending" as const,
+		})
+
+		// Notify the webview about the updated todo list by posting the state
+		const provider = this.providerRef.deref()
+		if (provider) {
+			await provider.postStateToWebview()
+		}
 	}
 
 	// Note that `partial` has three valid states true (partial message),
@@ -953,6 +966,46 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			throw new Error(`[RooCode#say] task ${this.taskId}.${this.instanceId} aborted`)
 		}
 
+		// Intercept AI responses to detect incomplete code and create subtasks
+		if (type === "text" && text && !partial) {
+			const exaiGuardService = ExAIGuardService.getInstance()
+			if (exaiGuardService.isEnabled()) {
+				const interceptionResult = exaiGuardService.interceptStream(text, {
+					taskId: this.taskId,
+					instanceId: this.instanceId,
+					messageType: "aiResponse"
+				})
+
+				// If incomplete code was detected and subtasks were created
+				if (interceptionResult.intercepted && interceptionResult.subtasks.length > 0) {
+					// Add subtasks to the todo list
+					for (const subtask of interceptionResult.subtasks) {
+						await this.addSubtaskToTodoList(subtask)
+					}
+
+					// Notify the webview about the subtasks using exaiGuardViolations message type
+					const provider = this.providerRef.deref()
+					if (provider) {
+						await provider.postMessageToWebview({
+							type: "exaiGuardViolations",
+							violations: interceptionResult.subtasks.map(subtask => ({
+								type: "incompleteCode",
+								patternType: subtask.patternType,
+								description: subtask.description,
+								subtaskId: subtask.id,
+								context: "aiResponse"
+							}))
+						})
+					}
+				}
+
+				// Use corrected content if available
+				if (interceptionResult.correctedContent && interceptionResult.correctedContent !== text) {
+					text = interceptionResult.correctedContent
+				}
+			}
+		}
+
 		if (partial !== undefined) {
 			const lastMessage = this.clineMessages.at(-1)
 
@@ -1067,11 +1120,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	private async startTask(task?: string, images?: string[]): Promise<void> {
 		if (this.enableTaskBridge) {
 			try {
-				this.bridgeService = this.bridgeService || ExtensionBridgeService.getInstance()
-
-				if (this.bridgeService) {
-					await this.bridgeService.subscribeToTask(this)
-				}
+				// ExtensionBridgeService integration temporarily disabled due to API changes
+				// Task subscription will be reimplemented when ExtensionBridgeService API is stable
+				this.bridgeService = null
 			} catch (error) {
 				console.error(
 					`[Task#startTask] subscribeToTask failed - ${error instanceof Error ? error.message : String(error)}`,
@@ -1135,11 +1186,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	private async resumeTaskFromHistory() {
 		if (this.enableTaskBridge) {
 			try {
-				this.bridgeService = this.bridgeService || ExtensionBridgeService.getInstance()
-
-				if (this.bridgeService) {
-					await this.bridgeService.subscribeToTask(this)
-				}
+				// ExtensionBridgeService integration temporarily disabled due to API changes
+				// Task subscription will be reimplemented when ExtensionBridgeService API is stable
+				this.bridgeService = null
 			} catch (error) {
 				console.error(
 					`[Task#resumeTaskFromHistory] subscribeToTask failed - ${error instanceof Error ? error.message : String(error)}`,
@@ -1402,8 +1451,10 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		// Unsubscribe from TaskBridge service.
 		if (this.bridgeService) {
 			this.bridgeService
-				.unsubscribeFromTask(this.taskId)
-				.catch((error: unknown) => console.error("Error unsubscribing from task bridge:", error))
+				// ExtensionBridgeService integration temporarily disabled due to API changes
+				// Task unsubscription will be reimplemented when ExtensionBridgeService API is stable
+				// ExtensionBridgeService integration temporarily disabled due to API changes
+				// Task unsubscription will be reimplemented when ExtensionBridgeService API is stable
 			this.bridgeService = null
 		}
 
@@ -1792,6 +1843,134 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 							case "text": {
 								assistantMessage += chunk.text
 
+								// ===== EXAI GUARD REAL-TIME STREAM INTERCEPTION =====
+								// Monitor AI responses in real-time to prevent violations as they occur
+								const exaiGuardService = ExAIGuardService.getInstance()
+								if (exaiGuardService.isEnabled() && exaiGuardService.isRealTimeDetectionEnabled()) {
+									try {
+										// Track AI claims and commitments for memory drift detection
+										exaiGuardService.trackAIClaim(chunk.text, {
+											taskId: this.taskId,
+											messageType: "aiStreamChunk"
+										})
+
+										// Detect memory drift (AI forgetting or contradicting previous claims)
+										const memoryDriftViolations = exaiGuardService.detectMemoryDrift(chunk.text, {
+											taskId: this.taskId
+										})
+
+										// Scan chunk text for violations in real-time
+										const standardViolations = exaiGuardService.scanContent(chunk.text, {
+											taskId: this.taskId,
+											instanceId: this.instanceId,
+											messageType: "aiStreamChunk",
+											isStreaming: true
+										})
+
+										// Combine all violations
+										const violations = [...standardViolations, ...memoryDriftViolations]
+
+										// If critical violations detected, intercept immediately
+										if (violations.length > 0) {
+											const criticalViolations = violations.filter(v =>
+												v.severity === "critical" || v.severity === "high"
+											)
+
+											if (criticalViolations.length > 0) {
+												// Auto-correct if enabled
+												let correctionsApplied = 0
+												if (exaiGuardService.isAutoCorrectionEnabled()) {
+													let correctedChunk = chunk.text
+
+													for (const violation of criticalViolations) {
+														const correction = exaiGuardService.applyCorrection(violation, correctedChunk)
+														if (correction.wasApplied) {
+															correctedChunk = correction.correctedContent
+															correctionsApplied++
+
+															// Log correction for transparency
+															console.log(`[ExAI Guard] Auto-corrected ${violation.type} violation: ${violation.message}`)
+
+															// Track correction telemetry
+															if (TelemetryService.hasInstance()) {
+																TelemetryService.instance.captureExAIGuardViolationCorrected(
+																	violation.type,
+																	violation.id,
+																	"auto-correction"
+																)
+															}
+														}
+													}
+
+													// Replace chunk text with corrected version
+													if (correctedChunk !== chunk.text) {
+														assistantMessage = assistantMessage.slice(0, -chunk.text.length) + correctedChunk
+
+														// Track stream correction action
+														if (TelemetryService.hasInstance() && correctionsApplied > 0) {
+															TelemetryService.instance.captureExAIGuardAction("stream-auto-correction", {
+																correctionsApplied,
+																streamPosition: assistantMessage.length,
+																taskId: this.taskId,
+																chunkLength: chunk.text.length
+															})
+														}
+													}
+												}
+
+												// Notify webview of violations in real-time
+												const provider = this.providerRef.deref()
+												if (provider) {
+													provider.postMessageToWebview({
+														type: "exaiGuardViolations",
+														violations: criticalViolations.map(v => ({
+															id: v.id,
+															type: v.type,
+															severity: v.severity,
+															message: v.message,
+															description: v.description,
+															timestamp: v.timestamp,
+															context: {
+																...v.context,
+																taskId: this.taskId,
+																streamPosition: assistantMessage.length
+															},
+															correction: v.correction
+														}))
+													})
+												}
+
+												// Track telemetry for ALL violations (corrected and uncorrected)
+												if (TelemetryService.hasInstance()) {
+													criticalViolations.forEach(v => {
+														TelemetryService.instance.captureExAIGuardViolationDetected(
+															v.type,
+															v.id,
+															v.severity
+														)
+													})
+
+													// Track memory drift violations separately for analytics
+													const memoryDriftViolations = criticalViolations.filter(v =>
+														v.message.includes("Memory drift") || v.message.includes("Claim drift")
+													)
+													if (memoryDriftViolations.length > 0) {
+														TelemetryService.instance.captureExAIGuardAction("memory-drift-detected", {
+															count: memoryDriftViolations.length,
+															taskId: this.taskId,
+															violationIds: memoryDriftViolations.map(v => v.id)
+														})
+													}
+												}
+											}
+										}
+									} catch (guardError) {
+										// Don't let ExAI Guard errors break the stream
+										console.error("[ExAI Guard] Stream interception error:", guardError)
+									}
+								}
+								// ===== END EXAI GUARD STREAM INTERCEPTION =====
+
 								// Parse raw assistant message chunk into content blocks.
 								const prevLength = this.assistantMessageContent.length
 								this.assistantMessageContent = this.assistantMessageParser.processChunk(chunk.text)
@@ -2080,6 +2259,32 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				// tool use since user can exit at any moment and we wouldn't be
 				// able to save the assistant's response.
 				let didEndLoop = false
+
+				// Apply ExAI Guard stream interception for incomplete code detection
+				const exaiGuardService = ExAIGuardService.getInstance()
+				if (exaiGuardService.isRealTimeDetectionEnabled() && assistantMessage.length > 0) {
+					const interceptionResult = exaiGuardService.interceptStream(assistantMessage, {
+						taskId: this.taskId,
+						messageType: "aiResponse"
+					})
+					
+					if (interceptionResult.intercepted && interceptionResult.violations.length > 0) {
+						// Send violations to webview for display
+						const provider = this.providerRef.deref()
+						if (provider) {
+							await provider.postMessageToWebview({
+								type: "exaiGuardViolations",
+								violations: interceptionResult.violations,
+								context: "streamInterception"
+							})
+						}
+						
+						// Apply auto-correction if enabled and violations were found
+						if (exaiGuardService.isAutoCorrectionEnabled() && interceptionResult.correctedContent) {
+							assistantMessage = interceptionResult.correctedContent
+						}
+					}
+				}
 
 				if (assistantMessage.length > 0) {
 					await this.addToApiConversationHistory({

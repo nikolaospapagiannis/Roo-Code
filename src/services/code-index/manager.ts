@@ -14,8 +14,8 @@ import fs from "fs/promises"
 import ignore from "ignore"
 import path from "path"
 import { t } from "../../i18n"
-import { TelemetryService } from "@roo-code/telemetry"
-import { TelemetryEventName } from "@roo-code/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+import { TelemetryEventName } from "@founder-x-ai/types"
 
 export class CodeIndexManager {
 	// --- Singleton Implementation ---

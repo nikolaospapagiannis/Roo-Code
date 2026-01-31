@@ -1,7 +1,7 @@
 import { PostHog } from "posthog-node"
 import * as vscode from "vscode"
 
-import { TelemetryEventName, type TelemetryEvent } from "@roo-code/types"
+import { TelemetryEventName, type TelemetryEvent } from "@founder-x-ai/types"
 
 import { BaseTelemetryClient } from "./BaseTelemetryClient"
 

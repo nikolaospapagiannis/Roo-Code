@@ -11,7 +11,7 @@ import {
 	IpcMessageType,
 	type IpcMessage,
 	ipcMessageSchema,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
 export class IpcServer extends EventEmitter<IpcServerEvents> implements RooCodeIpcServer {
 	private readonly _socketPath: string

@@ -39,9 +39,9 @@ import {
 import { AlertTriangle } from "lucide-react"
 import { useRooPortal } from "@src/components/ui/hooks/useRooPortal"
 import { useEscapeKey } from "@src/hooks/useEscapeKey"
-import type { EmbedderProvider } from "@roo/embeddingModels"
-import type { IndexingStatus } from "@roo/ExtensionMessage"
-import { CODEBASE_INDEX_DEFAULTS } from "@roo-code/types"
+import type { EmbedderProvider } from "@founder-x-ai/embeddingModels"
+import type { IndexingStatus } from "@founder-x-ai/ExtensionMessage"
+import { CODEBASE_INDEX_DEFAULTS } from "@founder-x-ai/types"
 
 // Default URLs for providers
 const DEFAULT_QDRANT_URL = "http://localhost:6333"

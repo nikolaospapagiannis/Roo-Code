@@ -1,4 +1,4 @@
-import { ClineMessage, HistoryItem } from "@roo-code/types"
+import { ClineMessage, HistoryItem } from "@founder-x-ai/types"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 interface UsePromptHistoryProps {

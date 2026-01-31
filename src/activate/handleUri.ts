@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 
-import { CloudService } from "@roo-code/cloud"
+import { CloudService } from "@founder-x-ai/cloud"
 
 import { ClineProvider } from "../core/webview/ClineProvider"
 
@@ -40,11 +40,9 @@ export const handleUri = async (uri: vscode.Uri) => {
 			const state = query.get("state")
 			const organizationId = query.get("organizationId")
 
-			await CloudService.instance.handleAuthCallback(
-				code,
-				state,
-				organizationId === "null" ? null : organizationId,
-			)
+			// CloudService integration temporarily disabled due to API changes
+			// Auth callback handling will be reimplemented when CloudService API is stable
+			console.log("Auth callback received but CloudService integration is disabled")
 			break
 		}
 		default:

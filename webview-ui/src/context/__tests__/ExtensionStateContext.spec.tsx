@@ -1,8 +1,8 @@
 import { render, screen, act } from "@/utils/test-utils"
 
-import { ProviderSettings, ExperimentId } from "@roo-code/types"
+import { ProviderSettings, ExperimentId } from "@founder-x-ai/types"
 
-import { ExtensionState } from "@roo/ExtensionMessage"
+import { ExtensionState } from "@founder-x-ai/ExtensionMessage"
 
 import { ExtensionStateContextProvider, useExtensionState, mergeExtensionState } from "../ExtensionStateContext"
 

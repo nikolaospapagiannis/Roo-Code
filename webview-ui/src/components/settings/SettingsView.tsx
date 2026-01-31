@@ -22,12 +22,13 @@ import {
 	Globe,
 	Info,
 	MessageSquare,
+	Shield,
 	LucideIcon,
 } from "lucide-react"
 
-import type { ProviderSettings, ExperimentId } from "@roo-code/types"
+import type { ProviderSettings, ExperimentId } from "@founder-x-ai/types"
 
-import { TelemetrySetting } from "@roo/TelemetrySetting"
+import { TelemetrySetting } from "@founder-x-ai/TelemetrySetting"
 
 import { vscode } from "@src/utils/vscode"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
@@ -65,6 +66,7 @@ import { LanguageSettings } from "./LanguageSettings"
 import { About } from "./About"
 import { Section } from "./Section"
 import PromptsSettings from "./PromptsSettings"
+import { ExAIGuardSettings } from "../exai-guard"
 import { cn } from "@/lib/utils"
 
 export const settingsTabsContainer = "flex flex-1 overflow-hidden [&.narrow_.tab-label]:hidden"
@@ -87,6 +89,7 @@ const sectionNames = [
 	"contextManagement",
 	"terminal",
 	"prompts",
+	"exaiGuard",
 	"experimental",
 	"language",
 	"about",
@@ -422,6 +425,7 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 			{ id: "contextManagement", icon: Database },
 			{ id: "terminal", icon: SquareTerminal },
 			{ id: "prompts", icon: MessageSquare },
+			{ id: "exaiGuard", icon: Shield },
 			{ id: "experimental", icon: FlaskConical },
 			{ id: "language", icon: Globe },
 			{ id: "about", icon: Info },
@@ -716,6 +720,21 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 								setCachedStateField("includeTaskHistoryInEnhance", value)
 							}
 						/>
+					)}
+
+					{/* ExAI Guard Section */}
+					{activeTab === "exaiGuard" && (
+						<div>
+							<SectionHeader>
+								<div className="flex items-center gap-2">
+									<Shield className="w-4" />
+									<div>{t("settings:sections.exaiGuard")}</div>
+								</div>
+							</SectionHeader>
+							<Section>
+								<ExAIGuardSettings />
+							</Section>
+						</div>
 					)}
 
 					{/* Experimental Section */}

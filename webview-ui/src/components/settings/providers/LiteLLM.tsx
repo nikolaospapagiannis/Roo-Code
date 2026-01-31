@@ -1,11 +1,11 @@
 import { useCallback, useState, useEffect, useRef } from "react"
 import { VSCodeTextField, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 
-import { type ProviderSettings, litellmDefaultModelId } from "@roo-code/types"
+import { type ProviderSettings, litellmDefaultModelId } from "@founder-x-ai/types"
 
-import type { OrganizationAllowList } from "@roo/cloud"
-import { RouterName } from "@roo/api"
-import { ExtensionMessage } from "@roo/ExtensionMessage"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
+import { RouterName } from "@founder-x-ai/api"
+import { ExtensionMessage } from "@founder-x-ai/ExtensionMessage"
 
 import { vscode } from "@src/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"

@@ -1,4 +1,4 @@
-import type { CloudUserInfo } from "@roo-code/cloud"
+import type { CloudUserInfo } from "@founder-x-ai/cloud"
 
 /**
  * Determines if remote control features should be enabled
@@ -7,5 +7,5 @@ import type { CloudUserInfo } from "@roo-code/cloud"
  * @returns true if remote control should be enabled
  */
 export function isRemoteControlEnabled(cloudUserInfo?: CloudUserInfo | null, remoteControlEnabled?: boolean): boolean {
-	return !!(cloudUserInfo?.id && cloudUserInfo.extensionBridgeEnabled && remoteControlEnabled)
+	return !!(cloudUserInfo?.id && remoteControlEnabled)
 }

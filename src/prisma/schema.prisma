@@ -1,0 +1,270 @@
+// This is your Prisma schema file for Fortune 100 Enterprise Grade database
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USER MODEL
+// ==========================================
+model User {
+  id                        String    @id @default(uuid())
+  username                  String    @unique
+  email                     String    @unique
+  passwordHash              String    @map("password_hash")
+  roles                     Json      @default("[]")
+
+  // MFA fields (encrypted in application layer)
+  mfaEnabled                Boolean   @default(false) @map("mfa_enabled")
+  mfaSecretEncrypted        String?   @map("mfa_secret_encrypted") @db.Text
+  mfaBackupCodesEncrypted   String?   @map("mfa_backup_codes_encrypted") @db.Text
+
+  // Metadata
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  lastLogin                 DateTime? @map("last_login")
+  isActive                  Boolean   @default(true) @map("is_active")
+
+  // Relations
+  sessions                  Session[]
+  auditLogs                 AuditLog[]
+
+  @@index([username])
+  @@index([email])
+  @@index([isActive])
+  @@map("users")
+}
+
+// ==========================================
+// SESSION MODEL
+// ==========================================
+model Session {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  tokenHash       String    @map("token_hash") @db.Text
+
+  // Session metadata
+  createdAt       DateTime  @default(now()) @map("created_at")
+  expiresAt       DateTime  @map("expires_at")
+  ipAddress       String?   @map("ip_address") @db.VarChar(45)
+  userAgent       String?   @map("user_agent") @db.Text
+
+  // Token counting for context window management
+  tokenCount      Int       @default(0) @map("token_count")
+  contextWindow   Int       @default(8192) @map("context_window")
+  lastActivity    DateTime  @default(now()) @map("last_activity")
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([lastActivity])
+  @@map("sessions")
+}
+
+// ==========================================
+// AUDIT LOG MODEL
+// ==========================================
+model AuditLog {
+  id                  String    @id @default(uuid())
+  timestamp           DateTime  @default(now())
+  userId              String?   @map("user_id")
+  sessionId           String?   @map("session_id")
+
+  // Action details
+  action              String    @db.VarChar(255)
+  resource            String    @db.VarChar(255)
+  result              String    @db.VarChar(50) // 'success' or 'failure'
+
+  // Encrypted details (AES-256-GCM encrypted JSON)
+  detailsEncrypted    String    @map("details_encrypted") @db.Text
+
+  // Request metadata
+  ipAddress           String?   @map("ip_address") @db.VarChar(45)
+  userAgent           String?   @map("user_agent") @db.Text
+
+  // Relations
+  user                User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
+  @@index([resource])
+  @@index([result])
+  @@map("audit_logs")
+}
+
+// ==========================================
+// VIOLATION MODEL (ExAI Guard specific)
+// ==========================================
+model Violation {
+  id              String    @id @default(uuid())
+  type            String    @db.VarChar(50) // 'security', 'privacy', 'compliance', 'ethical', 'quality'
+  severity        String    @db.VarChar(50) // 'low', 'medium', 'high', 'critical'
+  message         String    @db.Text
+  description     String    @db.Text
+
+  // Location
+  filePath        String?   @map("file_path") @db.Text
+  lineNumber      Int?      @map("line_number")
+  columnNumber    Int?      @map("column_number")
+
+  // Context (encrypted)
+  contextEncrypted String?  @map("context_encrypted") @db.Text
+
+  // Metadata
+  detectedAt      DateTime  @default(now()) @map("detected_at")
+  resolvedAt      DateTime? @map("resolved_at")
+  status          String    @default("open") @db.VarChar(50) // 'open', 'resolved', 'ignored'
+
+  // Session tracking
+  sessionId       String?   @map("session_id")
+
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([detectedAt])
+  @@index([sessionId])
+  @@map("violations")
+}
+
+// ==========================================
+// PATTERN MODEL (Brain Service ML patterns)
+// ==========================================
+model Pattern {
+  id              String    @id @default(uuid())
+  type            String    @db.VarChar(100) // 'violation', 'session', 'code', etc.
+
+  // Pattern content (encrypted)
+  contentEncrypted String   @map("content_encrypted") @db.Text
+
+  // Vector embedding (for similarity search)
+  // NOTE: PostgreSQL with pgvector extension for true vector search
+  embedding       Json?     // Store as JSON array until pgvector is setup
+
+  // Metadata
+  frequency       Int       @default(1)
+  lastSeen        DateTime  @default(now()) @map("last_seen")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  // Context (encrypted)
+  contextEncrypted String?  @map("context_encrypted") @db.Text
+
+  @@index([type])
+  @@index([lastSeen])
+  @@index([frequency])
+  @@map("patterns")
+}
+
+// ==========================================
+// RATE LIMIT MODEL (for distributed rate limiting)
+// ==========================================
+model RateLimit {
+  id              String    @id @default(uuid())
+  key             String    @unique @db.VarChar(255) // username, IP, etc.
+  type            String    @db.VarChar(50) // 'login', 'api', etc.
+
+  // Rate limit data
+  points          Int       @default(0)
+  resetAt         DateTime  @map("reset_at")
+  blockedUntil    DateTime? @map("blocked_until")
+
+  // Metadata
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@index([type])
+  @@index([resetAt])
+  @@map("rate_limits")
+}
+
+// ==========================================
+// BACKUP CODE MODEL (for MFA backup codes)
+// ==========================================
+model BackupCode {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  codeHash        String    @map("code_hash") @db.VarChar(255)
+
+  // Usage tracking
+  used            Boolean   @default(false)
+  usedAt          DateTime? @map("used_at")
+
+  // Metadata
+  createdAt       DateTime  @default(now()) @map("created_at")
+  expiresAt       DateTime? @map("expires_at")
+
+  @@index([userId])
+  @@index([used])
+  @@map("backup_codes")
+}
+
+// ==========================================
+// CHECKPOINT MODEL (for conversation checkpoints)
+// ==========================================
+model Checkpoint {
+  id              String    @id @default(uuid())
+
+  // Session reference
+  sessionId       String    @map("session_id")
+  userId          String?   @map("user_id")
+
+  // Checkpoint data (encrypted)
+  dataEncrypted   String    @map("data_encrypted") @db.Text
+
+  // Metadata
+  version         Int       @default(1)
+  tokenCount      Int       @default(0) @map("token_count")
+  messageCount    Int       @default(0) @map("message_count")
+
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  expiresAt       DateTime? @map("expires_at")
+
+  // Signature for tamper detection
+  signature       String?   @db.Text
+
+  // Status
+  status          String    @default("active") @db.VarChar(50) // 'active', 'archived', 'expired'
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+  @@map("checkpoints")
+}
+
+// ==========================================
+// JWT BLACKLIST MODEL (for token revocation)
+// ==========================================
+model JwtBlacklist {
+  id              String    @id @default(uuid())
+
+  // Token identification
+  jti             String    @unique @db.VarChar(255) // JWT ID
+  tokenHash       String    @map("token_hash") @db.VarChar(255) // SHA-256 hash
+
+  // Token metadata
+  userId          String?   @map("user_id")
+  reason          String?   @db.Text // 'logout', 'password_change', 'security', etc.
+
+  // Expiration (cleanup after token naturally expires)
+  expiresAt       DateTime  @map("expires_at")
+
+  // Metadata
+  blacklistedAt   DateTime  @default(now()) @map("blacklisted_at")
+
+  @@index([jti])
+  @@index([tokenHash])
+  @@index([userId])
+  @@index([expiresAt]) // For cleanup job
+  @@map("jwt_blacklist")
+}

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { MessageEnhancer } from "../messageEnhancer"
-import { ProviderSettings, ClineMessage } from "@roo-code/types"
-import { TelemetryService } from "@roo-code/telemetry"
+import { ProviderSettings, ClineMessage } from "@founder-x-ai/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
 import * as singleCompletionHandlerModule from "../../../utils/single-completion-handler"
 import { ProviderSettingsManager } from "../../config/ProviderSettingsManager"
 
 // Mock dependencies
 vi.mock("../../../utils/single-completion-handler")
-vi.mock("@roo-code/telemetry")
+vi.mock("@founder-x-ai/telemetry")
 
 describe("MessageEnhancer", () => {
 	let mockProviderSettingsManager: ProviderSettingsManager

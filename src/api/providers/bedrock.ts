@@ -22,7 +22,7 @@ import {
 	BEDROCK_DEFAULT_CONTEXT,
 	AWS_INFERENCE_PROFILE_MAPPING,
 	BEDROCK_CLAUDE_SONNET_4_MODEL_ID,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
 import { ApiStream } from "../transform/stream"
 import { BaseProvider } from "./base-provider"

@@ -5,7 +5,7 @@ import { fileURLToPath } from "url"
 import process from "node:process"
 import * as console from "node:console"
 
-import { copyPaths, copyWasms, copyLocales, setupLocaleWatcher } from "@roo-code/build"
+import { copyPaths, copyWasms, copyLocales, setupLocaleWatcher } from "@founder-x-ai/build"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -100,7 +100,35 @@ async function main() {
 		plugins,
 		entryPoints: ["extension.ts"],
 		outfile: "dist/extension.js",
-		external: ["vscode"],
+		external: [
+			"vscode",
+			// Fortune 100 native modules (should not be bundled)
+			"pg",
+			"pg-native",
+			"ioredis",
+			"bcrypt",
+			"speakeasy",
+			"tiktoken",  // WASM-based, already copied separately
+			// Optional heavy dependencies
+			"@grpc/grpc-js",
+			"@grpc/proto-loader",
+			"canvas",
+			"sharp",
+			"sqlite3",
+			"better-sqlite3",
+		],
+		// Enable tree shaking
+		treeShaking: true,
+		// Mangle private properties for smaller bundle (only in production)
+		mangleProps: production ? /^_private_/ : undefined,
+		// Drop console/debugger in production
+		drop: production ? ['console', 'debugger'] : [],
+		// Minification settings (more aggressive in production)
+		minifyWhitespace: production,
+		minifyIdentifiers: production,
+		minifySyntax: production,
+		// Generate metafile for bundle analysis
+		metafile: true,
 	}
 
 	/**
@@ -110,6 +138,8 @@ async function main() {
 		...buildOptions,
 		entryPoints: ["workers/countTokens.ts"],
 		outdir: "dist/workers",
+		treeShaking: true,
+		metafile: true,
 	}
 
 	const [extensionCtx, workerCtx] = await Promise.all([
@@ -122,7 +152,29 @@ async function main() {
 		copyLocales(srcDir, distDir)
 		setupLocaleWatcher(srcDir, distDir)
 	} else {
-		await Promise.all([extensionCtx.rebuild(), workerCtx.rebuild()])
+		const [extensionResult, workerResult] = await Promise.all([
+			extensionCtx.rebuild(),
+			workerCtx.rebuild()
+		])
+
+		// Print bundle size and save metafile
+		if (extensionResult.metafile) {
+			const metafilePath = path.join(distDir, 'meta.json')
+			fs.writeFileSync(metafilePath, JSON.stringify(extensionResult.metafile))
+
+			const size = fs.statSync(path.join(distDir, 'extension.js')).size
+			const sizeMB = (size / 1024 / 1024).toFixed(2)
+
+			console.log(`\n📦 Bundle size: ${sizeMB}MB`)
+
+			if (size > 5 * 1024 * 1024) {
+				console.warn(`⚠️  Warning: Bundle is larger than 5MB target`)
+				console.log(`💡 Run 'npx source-map-explorer dist/extension.js' to analyze`)
+			} else {
+				console.log(`✅ Bundle size is within Fortune 100 limits (<5MB)`)
+			}
+		}
+
 		await Promise.all([extensionCtx.dispose(), workerCtx.dispose()])
 	}
 }

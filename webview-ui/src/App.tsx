@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useRef, useState, useMemo } from "react"
 import { useEvent } from "react-use"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { ExtensionMessage } from "@roo/ExtensionMessage"
+import { ExtensionMessage } from "@founder-x-ai/ExtensionMessage"
 import TranslationProvider from "./i18n/TranslationContext"
 import { MarketplaceViewStateManager } from "./components/marketplace/MarketplaceViewStateManager"
 
 import { vscode } from "./utils/vscode"
 import { telemetryClient } from "./utils/TelemetryClient"
-import { TelemetryEventName } from "@roo-code/types"
+import { TelemetryEventName } from "@founder-x-ai/types"
 import { initializeSourceMaps, exposeSourceMapsForDebugging } from "./utils/sourceMapInitializer"
 import { ExtensionStateContextProvider, useExtensionState } from "./context/ExtensionStateContext"
 import ChatView, { ChatViewRef } from "./components/chat/ChatView"
@@ -20,6 +20,7 @@ import { MarketplaceView } from "./components/marketplace/MarketplaceView"
 import ModesView from "./components/modes/ModesView"
 import { HumanRelayDialog } from "./components/human-relay/HumanRelayDialog"
 import { DeleteMessageDialog, EditMessageDialog } from "./components/chat/MessageModificationConfirmationDialog"
+import { ExAIGuardViolationDialog } from "./components/exai-guard"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { AccountView } from "./components/account/AccountView"
 import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
@@ -46,10 +47,39 @@ interface EditMessageDialogState {
 	images?: string[]
 }
 
+interface ExAIGuardViolationDialogState {
+	isOpen: boolean
+	violations: Array<{
+		id: string
+		type: string
+		severity: "low" | "medium" | "high" | "critical"
+		message: string
+		description: string
+		timestamp: number
+		context?: {
+			taskId?: string
+			messageId?: string
+			toolName?: string
+			filePath?: string
+			command?: string
+			lineNumber?: string
+			patternId?: string
+			confidence?: string
+			riskScore?: string
+		}
+		correction?: {
+			suggestedAction: string
+			correctedContent?: string
+			autoCorrectable: boolean
+		}
+	}>
+}
+
 // Memoize dialog components to prevent unnecessary re-renders
 const MemoizedDeleteMessageDialog = React.memo(DeleteMessageDialog)
 const MemoizedEditMessageDialog = React.memo(EditMessageDialog)
 const MemoizedHumanRelayDialog = React.memo(HumanRelayDialog)
+const MemoizedExAIGuardViolationDialog = React.memo(ExAIGuardViolationDialog)
 
 const tabsByMessageAction: Partial<Record<NonNullable<ExtensionMessage["action"]>, Tab>> = {
 	chatButtonClicked: "chat",
@@ -98,6 +128,11 @@ const App = () => {
 		messageTs: 0,
 		text: "",
 		images: [],
+	})
+
+	const [exaiGuardViolationDialogState, setExaiGuardViolationDialogState] = useState<ExAIGuardViolationDialogState>({
+		isOpen: false,
+		violations: [],
 	})
 
 	const settingsRef = useRef<SettingsViewRef>(null)
@@ -168,6 +203,25 @@ const App = () => {
 					messageTs: message.messageTs,
 					text: message.text,
 					images: message.images || [],
+				})
+			}
+
+			if (message.type === "exaiGuardViolations" && message.violations) {
+				setExaiGuardViolationDialogState({
+					isOpen: true,
+					violations: message.violations,
+				})
+			}
+
+			if (message.type === "exaiGuardCorrectionApplied" && message.wasApplied) {
+				// Optionally show a success notification or update state
+				console.log("ExAI Guard correction applied successfully")
+			}
+
+			if (message.type === "exaiGuardViolationsCleared") {
+				setExaiGuardViolationDialogState({
+					isOpen: false,
+					violations: [],
 				})
 			}
 
@@ -294,6 +348,11 @@ const App = () => {
 					})
 					setEditMessageDialogState((prev) => ({ ...prev, isOpen: false }))
 				}}
+			/>
+			<MemoizedExAIGuardViolationDialog
+				isOpen={exaiGuardViolationDialogState.isOpen}
+				violations={exaiGuardViolationDialogState.violations}
+				onClose={() => setExaiGuardViolationDialogState((prev) => ({ ...prev, isOpen: false }))}
 			/>
 		</>
 	)

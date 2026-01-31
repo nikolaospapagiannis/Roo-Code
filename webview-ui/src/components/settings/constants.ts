@@ -18,9 +18,9 @@ import {
 	doubaoModels,
 	internationalZAiModels,
 	fireworksModels,
-	founderXAIModels,
+	rooModels,
 	featherlessModels,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
 export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, ModelInfo>>> = {
 	anthropic: anthropicModels,
@@ -40,7 +40,7 @@ export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, Mod
 	sambanova: sambaNovaModels,
 	zai: internationalZAiModels,
 	fireworks: fireworksModels,
-	"founder-x-ai": founderXAIModels,
+	"roo": rooModels,
 	featherless: featherlessModels,
 }
 

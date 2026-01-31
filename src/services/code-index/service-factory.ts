@@ -13,8 +13,8 @@ import { CacheManager } from "./cache-manager"
 import { RooIgnoreController } from "../../core/ignore/RooIgnoreController"
 import { Ignore } from "ignore"
 import { t } from "../../i18n"
-import { TelemetryService } from "@roo-code/telemetry"
-import { TelemetryEventName } from "@roo-code/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+import { TelemetryEventName } from "@founder-x-ai/types"
 
 /**
  * Factory class responsible for creating and configuring code indexing service dependencies.

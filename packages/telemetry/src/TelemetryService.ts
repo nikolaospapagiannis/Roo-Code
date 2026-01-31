@@ -1,6 +1,6 @@
 import { ZodError } from "zod"
 
-import { type TelemetryClient, type TelemetryPropertiesProvider, TelemetryEventName } from "@roo-code/types"
+import { type TelemetryClient, type TelemetryPropertiesProvider, TelemetryEventName } from "@founder-x-ai/types"
 
 /**
  * TelemetryService wrapper class that defers initialization.
@@ -224,6 +224,60 @@ export class TelemetryService {
 	 */
 	public captureTitleButtonClicked(button: string): void {
 		this.captureEvent(TelemetryEventName.TITLE_BUTTON_CLICKED, { button })
+	}
+
+	/**
+	 * Captures an ExAI Guard violation detection event
+	 * @param violationType The type of violation detected
+	 * @param patternId The pattern ID that was triggered
+	 * @param severity The severity level of the violation
+	 */
+	public captureExAIGuardViolationDetected(violationType: string, patternId: string, severity: string): void {
+		this.captureEvent(TelemetryEventName.EXAI_GUARD_VIOLATION_DETECTED, {
+			violationType,
+			patternId,
+			severity
+		})
+	}
+
+	/**
+	 * Captures an ExAI Guard violation correction event
+	 * @param violationType The type of violation corrected
+	 * @param patternId The pattern ID that was corrected
+	 * @param correctionMethod The method used for correction
+	 */
+	public captureExAIGuardViolationCorrected(violationType: string, patternId: string, correctionMethod: string): void {
+		this.captureEvent(TelemetryEventName.EXAI_GUARD_VIOLATION_CORRECTED, {
+			violationType,
+			patternId,
+			correctionMethod
+		})
+	}
+
+	/**
+	 * Captures an ExAI Guard scan completion event
+	 * @param scanType The type of scan performed
+	 * @param violationsFound Number of violations found
+	 * @param filesScanned Number of files scanned
+	 */
+	public captureExAIGuardScanCompleted(scanType: string, violationsFound: number, filesScanned: number): void {
+		this.captureEvent(TelemetryEventName.EXAI_GUARD_SCAN_COMPLETED, {
+			scanType,
+			violationsFound,
+			filesScanned
+		})
+	}
+
+	/**
+	 * Captures an ExAI Guard action event
+	 * @param action The action performed
+	 * @param properties Additional properties for the action
+	 */
+	public captureExAIGuardAction(action: string, properties?: Record<string, any>): void {
+		this.captureEvent(TelemetryEventName.EXAI_GUARD_ACTION, {
+			action,
+			...(properties || {})
+		})
 	}
 
 	/**

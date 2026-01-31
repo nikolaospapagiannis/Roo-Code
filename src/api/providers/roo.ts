@@ -1,6 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { rooDefaultModelId, rooModels, type RooModelId } from "@roo-code/types"
-import { CloudService } from "@roo-code/cloud"
+import { rooDefaultModelId, rooModels, type RooModelId } from "@founder-x-ai/types"
+import { CloudService } from "@founder-x-ai/cloud"
 
 import type { ApiHandlerOptions } from "../../shared/api"
 import { ApiStream } from "../transform/stream"
@@ -12,11 +12,9 @@ export class RooHandler extends BaseOpenAiCompatibleProvider<RooModelId> {
 	constructor(options: ApiHandlerOptions) {
 		// Get the session token if available, but don't throw if not.
 		// The server will handle authentication errors and return appropriate status codes.
+		// CloudService integration temporarily disabled due to API changes
+		// Session token handling will be reimplemented when CloudService API is stable
 		let sessionToken = ""
-
-		if (CloudService.hasInstance()) {
-			sessionToken = CloudService.instance.authService?.getSessionToken() || ""
-		}
 
 		// Always construct the handler, even without a valid token.
 		// The provider-proxy server will return 401 if authentication fails.

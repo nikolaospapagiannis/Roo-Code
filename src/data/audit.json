@@ -1,0 +1,713 @@
+[
+  {
+    "id": "audit_1761491250672_a1a100e7da4bd2a6",
+    "timestamp": 1761491250673,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "username": "testuser",
+      "email": "test@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491250754_1888e935275d61a5",
+    "timestamp": 1761491250754,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491250753_906c0f43fe6b45d4",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491250753_906c0f43fe6b45d4"
+    }
+  },
+  {
+    "id": "audit_1761491250829_053c9b2266055ce5",
+    "timestamp": 1761491250829,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491250828_15183a72595f9e11",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491250828_15183a72595f9e11"
+    }
+  },
+  {
+    "id": "audit_1761491250834_380d583fb1995efa",
+    "timestamp": 1761491250834,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "failure",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "reason": "Invalid password"
+    }
+  },
+  {
+    "id": "audit_1761491250918_dd89046aa69eeafe",
+    "timestamp": 1761491250918,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491250917_a9569ebe89dd7aef",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491250917_a9569ebe89dd7aef"
+    }
+  },
+  {
+    "id": "audit_1761491250996_7a73ce3161c35578",
+    "timestamp": 1761491250996,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491250995_ca3993a60ba8026d",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491250995_ca3993a60ba8026d"
+    }
+  },
+  {
+    "id": "audit_1761491251066_22670a6557813755",
+    "timestamp": 1761491251066,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251064_37f6de49797a546d",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251064_37f6de49797a546d"
+    }
+  },
+  {
+    "id": "audit_1761491251147_8a8c267ed4aa82c1",
+    "timestamp": 1761491251147,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251146_c7e402c0ed13a3b6",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251146_c7e402c0ed13a3b6"
+    }
+  },
+  {
+    "id": "audit_1761491251221_3f91c874f522f921",
+    "timestamp": 1761491251221,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251220_9f7abc9f4194a17d",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251220_9f7abc9f4194a17d"
+    }
+  },
+  {
+    "id": "audit_1761491251296_44a778bd9e0b47b9",
+    "timestamp": 1761491251296,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251295_c484546b48ecdef2",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251295_c484546b48ecdef2"
+    }
+  },
+  {
+    "id": "audit_1761491251371_0b3b52b29d95347c",
+    "timestamp": 1761491251371,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251370_9add185ff6441e35",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251370_9add185ff6441e35"
+    }
+  },
+  {
+    "id": "audit_1761491251453_8ccbed3785e98a64",
+    "timestamp": 1761491251453,
+    "userId": "user_1761491251452_5ea4f4e1127a33ec",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491251452_5ea4f4e1127a33ec",
+      "username": "checklist1",
+      "email": "check@test.com"
+    }
+  },
+  {
+    "id": "audit_1761491251525_153d502aea687d73",
+    "timestamp": 1761491251525,
+    "userId": "user_1761491251452_5ea4f4e1127a33ec",
+    "sessionId": "session_1761491251525_4951ce5d5a0974f0",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491251452_5ea4f4e1127a33ec",
+      "sessionId": "session_1761491251525_4951ce5d5a0974f0"
+    }
+  },
+  {
+    "id": "audit_1761491251595_ebe4986933fd99c2",
+    "timestamp": 1761491251595,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251594_ae2ecfb1b6ad1be1",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251594_ae2ecfb1b6ad1be1"
+    }
+  },
+  {
+    "id": "audit_1761491251669_c62560c85d8f5fde",
+    "timestamp": 1761491251669,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491251669_3b20fc51e4180f6a",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491251669_3b20fc51e4180f6a"
+    }
+  },
+  {
+    "id": "audit_1761491290586_213c66e025a84787",
+    "timestamp": 1761491290586,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491290584_db34c80e365c5929",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491290584_db34c80e365c5929"
+    }
+  },
+  {
+    "id": "audit_1761491290659_1150093d05ff1834",
+    "timestamp": 1761491290659,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491290658_15cebfe79cf59674",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491290658_15cebfe79cf59674"
+    }
+  },
+  {
+    "id": "audit_1761491290732_bd3e9113ed8f5afc",
+    "timestamp": 1761491290732,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "failure",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "reason": "Invalid password"
+    }
+  },
+  {
+    "id": "audit_1761491290812_5faa3d9d60a923fa",
+    "timestamp": 1761491290812,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491290811_06fd594e200482a1",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491290811_06fd594e200482a1"
+    }
+  },
+  {
+    "id": "audit_1761491290882_d82ee46223729eb1",
+    "timestamp": 1761491290882,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491290881_d41d76da50611b7c",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491290881_d41d76da50611b7c"
+    }
+  },
+  {
+    "id": "audit_1761491290954_cfe7a3e5cb35452d",
+    "timestamp": 1761491290954,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491290953_6793c0078c22618f",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491290953_6793c0078c22618f"
+    }
+  },
+  {
+    "id": "audit_1761491291038_a57dc9190597df3d",
+    "timestamp": 1761491291038,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491291037_692f530d1a67aae0",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491291037_692f530d1a67aae0"
+    }
+  },
+  {
+    "id": "audit_1761491291108_15f401967771d05b",
+    "timestamp": 1761491291108,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491291108_4b7f70c21b56c753",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491291108_4b7f70c21b56c753"
+    }
+  },
+  {
+    "id": "audit_1761491291182_f26d3d7331f1f856",
+    "timestamp": 1761491291182,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491291181_35ef8536e9151155",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491291181_35ef8536e9151155"
+    }
+  },
+  {
+    "id": "audit_1761491291255_2cb4765e78d56feb",
+    "timestamp": 1761491291255,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491291254_248966f4ec3856c6",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491291254_248966f4ec3856c6"
+    }
+  },
+  {
+    "id": "audit_1761491291256_3fb1e65842fed7bb",
+    "timestamp": 1761491291256,
+    "action": "register_user",
+    "resource": "user",
+    "result": "failure",
+    "details": {
+      "username": "checklist1",
+      "email": "check@test.com",
+      "reason": "User already exists"
+    }
+  },
+  {
+    "id": "audit_1761491291329_b6723b739c00febd",
+    "timestamp": 1761491291329,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491291328_521e03305ea8679d",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491291328_521e03305ea8679d"
+    }
+  },
+  {
+    "id": "audit_1761491291401_00dcaa8a5579656f",
+    "timestamp": 1761491291401,
+    "userId": "user_1761491250670_041dc45d45ca274d",
+    "sessionId": "session_1761491291400_e239dedaed75c81e",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491250670_041dc45d45ca274d",
+      "sessionId": "session_1761491291400_e239dedaed75c81e"
+    }
+  },
+  {
+    "id": "audit_1761491407431_4984d574f7ba869f",
+    "timestamp": 1761491407431,
+    "userId": "user_1761491407429_eb48bbb7e2e3b28e",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407429_eb48bbb7e2e3b28e",
+      "username": "testuser_1761491407353",
+      "email": "test_1761491407353@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491407509_eea334f28ab263ca",
+    "timestamp": 1761491407509,
+    "userId": "user_1761491407508_c2600119b4a905d7",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407508_c2600119b4a905d7",
+      "username": "authtest_1761491407434",
+      "email": "authtest_1761491407434@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491407585_66f46cea0f8ba028",
+    "timestamp": 1761491407585,
+    "userId": "user_1761491407508_c2600119b4a905d7",
+    "sessionId": "session_1761491407584_efb6a30c79183f69",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407508_c2600119b4a905d7",
+      "sessionId": "session_1761491407584_efb6a30c79183f69"
+    }
+  },
+  {
+    "id": "audit_1761491407657_049adaa5b0c0c236",
+    "timestamp": 1761491407657,
+    "userId": "user_1761491407656_d43dbde0f69172f3",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407656_d43dbde0f69172f3",
+      "username": "tokentest_1761491407586",
+      "email": "tokentest_1761491407586@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491407729_a10c96a2921dcd27",
+    "timestamp": 1761491407729,
+    "userId": "user_1761491407656_d43dbde0f69172f3",
+    "sessionId": "session_1761491407728_8e3fd5209f9aed78",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407656_d43dbde0f69172f3",
+      "sessionId": "session_1761491407728_8e3fd5209f9aed78"
+    }
+  },
+  {
+    "id": "audit_1761491407799_ed7b728415f5f245",
+    "timestamp": 1761491407799,
+    "userId": "user_1761491407798_3982386a619683b2",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407798_3982386a619683b2",
+      "username": "invalidtest_1761491407731",
+      "email": "invalidtest_1761491407731@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491407867_4cc1a695911f33e0",
+    "timestamp": 1761491407867,
+    "userId": "user_1761491407798_3982386a619683b2",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "failure",
+    "details": {
+      "userId": "user_1761491407798_3982386a619683b2",
+      "reason": "Invalid password"
+    }
+  },
+  {
+    "id": "audit_1761491407946_f3a7935c1ccd38ad",
+    "timestamp": 1761491407946,
+    "userId": "user_1761491407945_57f954b7c7d8cb1c",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407945_57f954b7c7d8cb1c",
+      "username": "sessiontest_1761491407876",
+      "email": "sessiontest_1761491407876@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408017_b8c3ac3a0b7f8cc2",
+    "timestamp": 1761491408017,
+    "userId": "user_1761491407945_57f954b7c7d8cb1c",
+    "sessionId": "session_1761491408016_dde9a006b057124b",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491407945_57f954b7c7d8cb1c",
+      "sessionId": "session_1761491408016_dde9a006b057124b"
+    }
+  },
+  {
+    "id": "audit_1761491408089_8f8704f81e431f51",
+    "timestamp": 1761491408089,
+    "userId": "user_1761491408088_278183277a1337f6",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408088_278183277a1337f6",
+      "username": "msgtest_1761491408018",
+      "email": "msgtest_1761491408018@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408157_b1494353643ca3c4",
+    "timestamp": 1761491408157,
+    "userId": "user_1761491408088_278183277a1337f6",
+    "sessionId": "session_1761491408156_0b00c3e0bbd819d1",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408088_278183277a1337f6",
+      "sessionId": "session_1761491408156_0b00c3e0bbd819d1"
+    }
+  },
+  {
+    "id": "audit_1761491408231_dd5a01c5c2b7b2eb",
+    "timestamp": 1761491408232,
+    "userId": "user_1761491408230_cde5c042de81b0e4",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408230_cde5c042de81b0e4",
+      "username": "limittest_1761491408158.5671",
+      "email": "limittest_1761491408158.5671@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408301_8e59921ea69a704d",
+    "timestamp": 1761491408301,
+    "userId": "user_1761491408230_cde5c042de81b0e4",
+    "sessionId": "session_1761491408301_cc468f5f58e69f4a",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408230_cde5c042de81b0e4",
+      "sessionId": "session_1761491408301_cc468f5f58e69f4a"
+    }
+  },
+  {
+    "id": "audit_1761491408385_b4486473ca5f77a2",
+    "timestamp": 1761491408385,
+    "userId": "user_1761491408384_306613ec1a8abfcf",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408384_306613ec1a8abfcf",
+      "username": "auditlog_1761491408314.8628",
+      "email": "auditlog_1761491408314.8628@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408458_d51d40ad596b8f85",
+    "timestamp": 1761491408458,
+    "userId": "user_1761491408384_306613ec1a8abfcf",
+    "sessionId": "session_1761491408457_c33db8b6f75fbc12",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408384_306613ec1a8abfcf",
+      "sessionId": "session_1761491408457_c33db8b6f75fbc12"
+    }
+  },
+  {
+    "id": "audit_1761491408529_847b151c51cf33c8",
+    "timestamp": 1761491408529,
+    "userId": "user_1761491408528_b58567f8ca93ba41",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408528_b58567f8ca93ba41",
+      "username": "audittrail_1761491408459.2734",
+      "email": "audittrail_1761491408459.2734@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408595_bd9d164cc27b929b",
+    "timestamp": 1761491408595,
+    "userId": "user_1761491408528_b58567f8ca93ba41",
+    "sessionId": "session_1761491408594_cf96dee0bb85ad69",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408528_b58567f8ca93ba41",
+      "sessionId": "session_1761491408594_cf96dee0bb85ad69"
+    }
+  },
+  {
+    "id": "audit_1761491408667_a67541b3ed5be41c",
+    "timestamp": 1761491408667,
+    "userId": "user_1761491408666_2cae40bbd0f5c834",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408666_2cae40bbd0f5c834",
+      "username": "contexttest_1761491408597.6519",
+      "email": "contexttest_1761491408597.6519@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408735_83f84f8f411185b8",
+    "timestamp": 1761491408735,
+    "userId": "user_1761491408666_2cae40bbd0f5c834",
+    "sessionId": "session_1761491408734_c548a747c04e47f0",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408666_2cae40bbd0f5c834",
+      "sessionId": "session_1761491408734_c548a747c04e47f0"
+    }
+  },
+  {
+    "id": "audit_1761491408807_aa8d87e19d2534ae",
+    "timestamp": 1761491408807,
+    "userId": "user_1761491408806_829cc1609418396b",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408806_829cc1609418396b",
+      "username": "multitest_1761491408736.0369",
+      "email": "multitest_1761491408736.0369@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491408881_3a5e330d491a36b0",
+    "timestamp": 1761491408881,
+    "userId": "user_1761491408806_829cc1609418396b",
+    "sessionId": "session_1761491408880_3f18630eeedb7833",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408806_829cc1609418396b",
+      "sessionId": "session_1761491408880_3f18630eeedb7833"
+    }
+  },
+  {
+    "id": "audit_1761491408949_89392764be14074f",
+    "timestamp": 1761491408949,
+    "userId": "user_1761491408948_240ab89d966063ed",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408948_240ab89d966063ed",
+      "username": "checklist_1761491408882.5615",
+      "email": "checklist_1761491408882.5615@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491409015_bc2758d4287e7378",
+    "timestamp": 1761491409015,
+    "userId": "user_1761491408948_240ab89d966063ed",
+    "sessionId": "session_1761491409014_e9eea2f46193d51e",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491408948_240ab89d966063ed",
+      "sessionId": "session_1761491409014_e9eea2f46193d51e"
+    }
+  },
+  {
+    "id": "audit_1761491409087_4ca594a28f824ab4",
+    "timestamp": 1761491409087,
+    "userId": "user_1761491409086_82863b8d15350e61",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491409086_82863b8d15350e61",
+      "username": "sessionmgmt_1761491409016.8538",
+      "email": "sessionmgmt_1761491409016.8538@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491409156_625f2d6063dfaa1a",
+    "timestamp": 1761491409156,
+    "userId": "user_1761491409086_82863b8d15350e61",
+    "sessionId": "session_1761491409155_c8ea9f9687e5466c",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491409086_82863b8d15350e61",
+      "sessionId": "session_1761491409155_c8ea9f9687e5466c"
+    }
+  },
+  {
+    "id": "audit_1761491409223_e08a5384027d862a",
+    "timestamp": 1761491409223,
+    "userId": "user_1761491409222_ca70cb7034ed4cb8",
+    "action": "register_user",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491409222_ca70cb7034ed4cb8",
+      "username": "contextmgmt_1761491409156.103",
+      "email": "contextmgmt_1761491409156.103@example.com"
+    }
+  },
+  {
+    "id": "audit_1761491409292_4968de92c4fe2663",
+    "timestamp": 1761491409292,
+    "userId": "user_1761491409222_ca70cb7034ed4cb8",
+    "sessionId": "session_1761491409291_f6ab13d72ed54bc6",
+    "action": "authenticate",
+    "resource": "user",
+    "result": "success",
+    "details": {
+      "userId": "user_1761491409222_ca70cb7034ed4cb8",
+      "sessionId": "session_1761491409291_f6ab13d72ed54bc6"
+    }
+  }
+]

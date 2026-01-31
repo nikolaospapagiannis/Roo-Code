@@ -10,7 +10,7 @@ import {
 	IpcOrigin,
 	IpcMessageType,
 	ipcMessageSchema,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
 export class IpcClient extends EventEmitter<IpcClientEvents> {
 	private readonly _socketPath: string

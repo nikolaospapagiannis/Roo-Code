@@ -1,8 +1,8 @@
 import * as vscode from "vscode"
 import delay from "delay"
 
-import type { CommandId } from "@roo-code/types"
-import { TelemetryService } from "@roo-code/telemetry"
+import type { CommandId } from "@founder-x-ai/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
 
 import { Package } from "../shared/package"
 import { getCommand } from "../utils/commands"
@@ -16,6 +16,8 @@ import { CodeIndexManager } from "../services/code-index/manager"
 import { importSettingsWithFeedback } from "../core/config/importExport"
 import { MdmService } from "../services/mdm/MdmService"
 import { t } from "../i18n"
+import { ExAIGuardService } from "../services/exai-guard/ExAIGuardService"
+import { AIGuardCommands } from "../services/exai-guard/commands"
 
 /**
  * Helper to get the visible ClineProvider instance or log if not found.
@@ -65,6 +67,10 @@ export type RegisterCommandOptions = {
 
 export const registerCommands = (options: RegisterCommandOptions) => {
 	const { context } = options
+
+	// Register AI Guard commands
+	const aiGuardCommands = AIGuardCommands.getInstance()
+	aiGuardCommands.registerCommands(context)
 
 	for (const [id, callback] of Object.entries(getCommandsMap(options))) {
 		const command = getCommand(id as CommandId)
@@ -220,6 +226,53 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 		}
 
 		visibleProvider.postMessageToWebview({ type: "acceptInput" })
+	},
+
+	// ExAI Guard commands
+	exaiGuardShowViolations: () => {
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		if (!visibleProvider) return
+
+		TelemetryService.instance.captureExAIGuardAction("showViolations")
+		visibleProvider.postMessageToWebview({ type: "action", action: "exaiGuardShowViolations" })
+	},
+
+	exaiGuardToggleDetection: () => {
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		if (!visibleProvider) return
+
+		TelemetryService.instance.captureExAIGuardAction("toggleDetection")
+		visibleProvider.postMessageToWebview({ type: "action", action: "exaiGuardToggleDetection" })
+	},
+
+	exaiGuardRunScan: async () => {
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		if (!visibleProvider) return
+
+		TelemetryService.instance.captureExAIGuardAction("runScan")
+		
+		// Run a manual scan of the current workspace
+		const exaiGuardService = ExAIGuardService.getInstance()
+		const violations = await exaiGuardService.scanCurrentWorkspace()
+		
+		if (violations.length > 0) {
+			visibleProvider.postMessageToWebview({
+				type: "exaiGuardViolations",
+				violations
+			})
+		} else {
+			vscode.window.showInformationMessage("ExAI Guard: No violations found in workspace scan.")
+		}
+	},
+
+	exaiGuardShowSettings: () => {
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		if (!visibleProvider) return
+
+		TelemetryService.instance.captureExAIGuardAction("showSettings")
+		visibleProvider.postMessageToWebview({ type: "action", action: "settingsButtonClicked" })
+		// Navigate to ExAI Guard settings tab
+		visibleProvider.postMessageToWebview({ type: "action", action: "exaiGuardShowSettings" })
 	},
 })
 

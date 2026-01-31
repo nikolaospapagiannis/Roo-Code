@@ -9,8 +9,8 @@ import type {
 	ClineMessage,
 	MarketplaceItem,
 	TodoItem,
-} from "@roo-code/types"
-import type { CloudUserInfo, OrganizationAllowList, ShareVisibility } from "@roo-code/cloud"
+} from "@founder-x-ai/types"
+import type { CloudUserInfo, OrganizationAllowList, ShareVisibility } from "@founder-x-ai/cloud"
 
 import { GitCommit } from "../utils/git"
 
@@ -120,6 +120,13 @@ export interface ExtensionMessage {
 		| "showEditMessageDialog"
 		| "commands"
 		| "insertTextIntoTextarea"
+		| "exaiGuardViolations"
+		| "exaiGuardConfig"
+		| "exaiGuardConfigUpdated"
+		| "exaiGuardApplyCorrection"
+		| "exaiGuardCorrectionApplied"
+		| "exaiGuardClearViolations"
+		| "exaiGuardViolationsCleared"
 	text?: string
 	payload?: any // Add a generic payload for now, can refine later
 	action?:
@@ -133,6 +140,9 @@ export interface ExtensionMessage {
 		| "didBecomeVisible"
 		| "focusInput"
 		| "switchTab"
+		| "exaiGuardShowViolations"
+		| "exaiGuardToggleDetection"
+		| "exaiGuardShowSettings"
 	invoke?: "newChat" | "sendMessage" | "primaryButtonClick" | "secondaryButtonClick" | "setChatBoxMessage"
 	state?: ExtensionState
 	images?: string[]
@@ -194,6 +204,11 @@ export interface ExtensionMessage {
 	messageTs?: number
 	context?: string
 	commands?: Command[]
+	violations?: any // ExAI Guard violations array
+	violationId?: string
+	originalContent?: string
+	correctedContent?: string
+	wasApplied?: boolean
 }
 
 export type ExtensionState = Pick<

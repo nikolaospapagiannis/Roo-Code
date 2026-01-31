@@ -53,6 +53,12 @@ export const commandIds = [
 	"focusInput",
 	"acceptInput",
 	"focusPanel",
+
+	// ExAI Guard commands
+	"exaiGuardShowViolations",
+	"exaiGuardToggleDetection",
+	"exaiGuardRunScan",
+	"exaiGuardShowSettings",
 ] as const
 
 export type CommandId = (typeof commandIds)[number]

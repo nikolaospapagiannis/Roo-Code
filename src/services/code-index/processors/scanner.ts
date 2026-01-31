@@ -26,8 +26,8 @@ import {
 	MAX_PENDING_BATCHES,
 } from "../constants"
 import { isPathInIgnoredDirectory } from "../../glob/ignore-utils"
-import { TelemetryService } from "@roo-code/telemetry"
-import { TelemetryEventName } from "@roo-code/types"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+import { TelemetryEventName } from "@founder-x-ai/types"
 import { sanitizeErrorMessage } from "../shared/validation-helpers"
 
 export class DirectoryScanner implements IDirectoryScanner {

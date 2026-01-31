@@ -2,9 +2,9 @@ import { memo, useEffect, useRef, useState } from "react"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { AlertTriangle } from "lucide-react"
 
-import type { ProviderSettingsEntry } from "@roo-code/types"
+import type { ProviderSettingsEntry } from "@founder-x-ai/types"
 
-import type { OrganizationAllowList } from "@roo/cloud"
+import type { OrganizationAllowList } from "@founder-x-ai/cloud"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import {

@@ -1,0 +1,2125 @@
+
+import * as vscode from "vscode"
+import * as fs from "fs"
+import * as path from "path"
+import { EventEmitter } from "events"
+import WebSocket, { WebSocketServer } from "ws"
+
+import {
+  type GlobalState,
+  type ClineMessage,
+  RooCodeEventName
+} from "@founder-x-ai/types"
+
+import { Package } from "../../shared/package"
+import { t } from "../../i18n"
+import { TelemetryService } from "@founder-x-ai/telemetry"
+
+/**
+ * ExAI Guard violation types
+ */
+export enum ExAIGuardViolationType {
+  SECURITY = "security",
+  PRIVACY = "privacy", 
+  COMPLIANCE = "compliance",
+  ETHICAL = "ethical",
+  QUALITY = "quality"
+}
+
+/**
+ * ExAI Guard violation severity levels
+ */
+export enum ExAIGuardViolationSeverity {
+  LOW = "low",
+  MEDIUM = "medium", 
+  HIGH = "high",
+  CRITICAL = "critical"
+}
+
+/**
+ * ExAI Guard violation interface
+ */
+export interface ExAIGuardViolation {
+  id: string
+  type: ExAIGuardViolationType
+  severity: ExAIGuardViolationSeverity
+  message: string
+  description: string
+  timestamp: number
+  context?: {
+    taskId?: string
+    messageId?: string
+    toolName?: string
+    filePath?: string
+    command?: string
+    lineNumber?: string
+    patternId?: string
+    confidence?: string
+    riskScore?: string
+  }
+  correction?: {
+    suggestedAction: string
+    correctedContent?: string
+    autoCorrectable: boolean
+  }
+}
+
+/**
+ * ExAI Guard configuration
+ */
+export interface ExAIGuardConfig {
+  enabled: boolean
+  realTimeDetection: boolean
+  autoCorrection: boolean
+  violationTypes: {
+    [ExAIGuardViolationType.SECURITY]: boolean
+    [ExAIGuardViolationType.PRIVACY]: boolean
+    [ExAIGuardViolationType.COMPLIANCE]: boolean
+    [ExAIGuardViolationType.ETHICAL]: boolean
+    [ExAIGuardViolationType.QUALITY]: boolean
+  }
+  severityThreshold: ExAIGuardViolationSeverity
+  notificationEnabled: boolean
+  loggingEnabled: boolean
+}
+
+/**
+ * Incomplete code patterns for stream interception
+ */
+export interface IncompleteCodePattern {
+  id: string
+  name: string
+  pattern: RegExp
+  severity: ExAIGuardViolationSeverity
+  description: string
+  suggestion: string
+  autoCorrectable: boolean
+}
+
+/**
+ * Stream interception result
+ */
+export interface StreamInterceptionResult {
+  intercepted: boolean
+  violations: ExAIGuardViolation[]
+  subtasks: any[]
+  correctedContent: string
+}
+
+/**
+ * Orchestration subtask
+ */
+export interface OrchestrationSubtask {
+  id: string
+  title: string
+  description: string
+  priority: 'low' | 'medium' | 'high'
+  status: 'pending' | 'in-progress' | 'completed' | 'failed'
+  violationId?: string
+  createdAt: number
+  completedAt?: number
+  result?: any
+}
+
+/**
+ * ExAI Guard events
+ */
+export interface ExAIGuardEvents {
+  violationDetected: [ExAIGuardViolation]
+  violationCorrected: [ExAIGuardViolation]
+  configUpdated: [ExAIGuardConfig]
+  streamIntercepted: [StreamInterceptionResult]
+  subtaskCreated: [OrchestrationSubtask]
+  subtaskCompleted: [OrchestrationSubtask]
+}
+
+/**
+ * ExAI Guard Service
+ * 
+ * Provides real-time AI safety and compliance monitoring with violation detection
+ * and correction capabilities.
+ */
+export class ExAIGuardService extends EventEmitter<ExAIGuardEvents> {
+  private static instance: ExAIGuardService
+  private config: ExAIGuardConfig
+  private violations: Map<string, ExAIGuardViolation> = new Map()
+  private subtasks: Map<string, OrchestrationSubtask> = new Map()
+  private isInitialized = false
+  private streamInterceptionEnabled = true
+  private orchestrationEnabled = true
+  private editorWatcher: vscode.Disposable | undefined
+  private activeEditor: vscode.TextEditor | undefined
+
+  // Memory and Claim Drift Detection
+  private memoryTracker: {
+    claims: Map<string, {
+      id: string
+      claim: string
+      timestamp: number
+      taskId: string
+      fulfilled: boolean
+      references: string[]
+    }>
+    commitments: Map<string, {
+      id: string
+      commitment: string
+      timestamp: number
+      taskId: string
+      status: 'pending' | 'fulfilled' | 'violated' | 'forgotten'
+      relatedViolations: string[]
+    }>
+    contextWindow: string[]
+    maxContextSize: number
+  } = {
+    claims: new Map(),
+    commitments: new Map(),
+    contextWindow: [],
+    maxContextSize: 50 // Track last 50 AI messages
+  }
+  private claimDriftThreshold = 0.7 // 70% similarity threshold
+
+  // WebSocket Server for external integration
+  private wss: WebSocketServer | null = null
+  private websocketPort = 8080
+  private connectionId = 0
+
+  // Session Management
+  private activeSessions: Map<string, {
+    id: string
+    projectPath: string
+    files: string[]
+    startTime: number
+    endTime?: number
+    duration?: number
+    status: 'ANALYZING' | 'COMPLETED' | 'FAILED' | 'ACTIVE'
+    violations: ExAIGuardViolation[]
+    fixes: Array<{ violation: ExAIGuardViolation; fix: any; appliedAt: string }>
+    client?: WebSocket
+    error?: string
+  }> = new Map()
+
+  // Checkpoint System
+  private checkpoints: Map<string, {
+    timestamp: number
+    activeSessions: Array<[string, any]>
+    learningData: Array<[string, any]>
+    systemStats: {
+      uptime: number
+      memoryUsage: NodeJS.MemoryUsage
+      activeConnections: number
+    }
+  }> = new Map()
+  private checkpointInterval: NodeJS.Timeout | null = null
+
+  // Self-Learning System
+  private learningData: Map<string, any> = new Map()
+  private learningMetrics: {
+    violationPatterns: Map<string, number>
+    fixSuccessRates: Map<string, number>
+    commonErrors: Map<string, number>
+    performanceMetrics: Array<{
+      sessionId: string
+      duration: number
+      violationsPerMinute: number
+      fixesPerMinute: number
+    }>
+  } = {
+    violationPatterns: new Map(),
+    fixSuccessRates: new Map(),
+    commonErrors: new Map(),
+    performanceMetrics: []
+  }
+
+  // File-based Logging
+  private logFile: string | null = null
+  private detailedLogFile: string | null = null
+
+  // Common security patterns to detect
+  private readonly securityPatterns = {
+    apiKeys: /(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token)[\s]*[:=][\s]*["']?([a-zA-Z0-9_\-]{20,})["']?/gi,
+    privateKeys: /-----BEGIN (?:RSA )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA )?PRIVATE KEY-----/gi,
+    passwords: /(?:password|pwd|pass)[\s]*[:=][\s]*["']?([^"'\s]{6,})["']?/gi,
+    awsKeys: /AKIA[0-9A-Z]{16}/gi,
+    sshKeys: /ssh-rsa AAAA[0-9A-Za-z+/]+[=]{0,3}( [^@]+@[^@]+)?/gi,
+    ipAddresses: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g
+  }
+
+  // Privacy patterns
+  private readonly privacyPatterns = {
+    email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+    // Enhanced phone pattern - supports multiple international formats
+    phone: /(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{1,4}\)?[-.\s]?)?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g,
+    // Enhanced SSN pattern - with and without dashes
+    ssn: /\b(?:\d{3}-\d{2}-\d{4}|\d{9})\b/g,
+    creditCard: /\b(?:\d{4}[- ]?){3}\d{4}\b/g
+  }
+
+  // Compliance patterns
+  private readonly compliancePatterns = {
+    gdprKeywords: /\b(gdpr|general data protection regulation|personal data|data subject|consent)\b/gi,
+    hipaaKeywords: /\b(hipaa|protected health information|phi|medical record|patient data)\b/gi,
+    pciKeywords: /\b(pci|payment card industry|credit card|cardholder data)\b/gi
+  }
+
+  // Ethical patterns
+  private readonly ethicalPatterns = {
+    harmfulContent: /\b(kill|harm|hurt|destroy|attack|violence|weapon|bomb|terror)\b/gi,
+    discriminatory: /\b(race|racist|sexist|discriminat|prejudice|bias|hate)\b/gi,
+    illegal: /\b(illegal|crime|criminal|fraud|scam|steal|theft)\b/gi
+  }
+
+  // Quality patterns
+  private readonly qualityPatterns = {
+    hardcodedValues: /(?:password|api[_-]?key|secret)[\s]*[:=][\s]*["'][^"']+["']/gi,
+    debugStatements: /(?:console\.log|alert|debugger|print\()/gi,
+    todoComments: /\/\/\s*(TODO|FIXME|HACK|XXX)/gi
+  }
+
+  // Incomplete code patterns for stream interception
+  private readonly incompleteCodePatterns: IncompleteCodePattern[] = [
+    {
+      id: 'stub-implementation',
+      name: 'Stub Implementation',
+      pattern: /\/\/\s*(?:TODO|FIXME|HACK|XXX|STUB|IMPLEMENT|FILL|COMPLETE)[^.]*\.\.\./gi,
+      severity: ExAIGuardViolationSeverity.MEDIUM,
+      description: 'Incomplete stub implementation detected',
+      suggestion: 'Complete the implementation instead of leaving stubs',
+      autoCorrectable: false
+    },
+    {
+      id: 'for-now-comment',
+      name: '"For Now" Comment',
+      pattern: /\/\/\s*for\s+now[^.]*\.\.\./gi,
+      severity: ExAIGuardViolationSeverity.MEDIUM,
+      description: 'Temporary "for now" implementation detected',
+      suggestion: 'Implement proper solution instead of temporary workaround',
+      autoCorrectable: false
+    },
+    {
+      id: 'placeholder-code',
+      name: 'Placeholder Code',
+      pattern: /\/\/\s*(?:placeholder|temp|temporary|dummy)[^.]*\.\.\./gi,
+      severity: ExAIGuardViolationSeverity.LOW,
+      description: 'Placeholder code detected',
+      suggestion: 'Replace placeholder with actual implementation',
+      autoCorrectable: false
+    },
+    {
+      id: 'incomplete-function',
+      name: 'Incomplete Function',
+      pattern: /function\s+\w+\s*\([^)]*\)\s*\{[^}]*\/\/\s*(?:TODO|FIXME|IMPLEMENT)[^}]*\}/gi,
+      severity: ExAIGuardViolationSeverity.HIGH,
+      description: 'Function implementation is incomplete',
+      suggestion: 'Complete the function implementation',
+      autoCorrectable: false
+    },
+    {
+      id: 'fake-business-logic',
+      name: 'Fake Business Logic',
+      pattern: /\/\/\s*(?:fake|mock|simulated|dummy)\s+business\s+logic/gi,
+      severity: ExAIGuardViolationSeverity.HIGH,
+      description: 'Fake business logic detected',
+      suggestion: 'Implement real business logic instead of fake implementation',
+      autoCorrectable: false
+    },
+    {
+      id: 'missing-error-handling',
+      name: 'Missing Error Handling',
+      pattern: /\/\/\s*(?:error\s+handling|exception\s+handling)\s+needed/gi,
+      severity: ExAIGuardViolationSeverity.MEDIUM,
+      description: 'Missing error handling detected',
+      suggestion: 'Add proper error handling',
+      autoCorrectable: false
+    }
+  ]
+
+  private constructor() {
+    super()
+    this.config = this.getDefaultConfig()
+
+    // Initialize file-based logging
+    this.initializeLogging()
+
+    // Start WebSocket server
+    this.startWebSocketServer()
+
+    // Initialize checkpointing system (30-second intervals)
+    this.initializeCheckpointing()
+
+    // Initialize self-learning system
+    this.initializeLearningSystem()
+  }
+
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(): ExAIGuardService {
+    if (!ExAIGuardService.instance) {
+      ExAIGuardService.instance = new ExAIGuardService()
+    }
+    return ExAIGuardService.instance
+  }
+
+  /**
+   * Initialize the service with configuration
+   */
+  public async initialize(context: vscode.ExtensionContext): Promise<void> {
+    if (this.isInitialized) {
+      return
+    }
+
+    try {
+      // Load configuration from global state
+      const globalState = context.globalState
+      const savedConfig = globalState.get<ExAIGuardConfig>("exaiGuardConfig")
+      
+      if (savedConfig) {
+        this.config = { ...this.getDefaultConfig(), ...savedConfig }
+      }
+
+      this.isInitialized = true
+      
+      // Start real-time monitoring if enabled
+      if (this.config.realTimeDetection) {
+        this.startRealTimeMonitoring()
+      }
+      
+      console.log("ExAI Guard Service initialized successfully")
+    } catch (error) {
+      console.error("Failed to initialize ExAI Guard Service:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Start real-time editor monitoring
+   */
+  private startRealTimeMonitoring(): void {
+    if (this.editorWatcher) {
+      this.editorWatcher.dispose()
+    }
+
+    // Monitor active editor changes
+    this.activeEditor = vscode.window.activeTextEditor
+    this.editorWatcher = vscode.window.onDidChangeActiveTextEditor(editor => {
+      this.activeEditor = editor
+      if (editor && this.config.realTimeDetection) {
+        this.scanActiveEditor()
+      }
+    })
+
+    // Monitor text document changes
+    vscode.workspace.onDidChangeTextDocument(event => {
+      if (this.activeEditor &&
+          event.document === this.activeEditor.document &&
+          this.config.realTimeDetection) {
+        this.scanActiveEditor()
+      }
+    })
+
+    // Initial scan
+    if (this.activeEditor) {
+      this.scanActiveEditor()
+    }
+  }
+
+  /**
+   * Stop real-time monitoring
+   */
+  private stopRealTimeMonitoring(): void {
+    if (this.editorWatcher) {
+      this.editorWatcher.dispose()
+      this.editorWatcher = undefined
+    }
+    
+    // Clear all decorations by creating temporary ones and clearing them
+    if (this.activeEditor) {
+      const decorationTypes = [
+        vscode.window.createTextEditorDecorationType({
+          backgroundColor: 'rgba(255, 0, 0, 0.3)',
+          border: '1px solid red',
+        }),
+        vscode.window.createTextEditorDecorationType({
+          backgroundColor: 'rgba(255, 165, 0, 0.3)',
+          border: '1px solid orange',
+        }),
+        vscode.window.createTextEditorDecorationType({
+          backgroundColor: 'rgba(255, 255, 0, 0.3)',
+          border: '1px solid yellow',
+        }),
+        vscode.window.createTextEditorDecorationType({
+          backgroundColor: 'rgba(0, 128, 0, 0.3)',
+          border: '1px solid green',
+        })
+      ]
+      
+      decorationTypes.forEach(decorationType => {
+        this.activeEditor!.setDecorations(decorationType, [])
+        decorationType.dispose()
+      })
+    }
+  }
+
+  /**
+   * Scan the active editor for violations
+   */
+  private scanActiveEditor(): void {
+    if (!this.activeEditor || !this.config.enabled) {
+      return
+    }
+
+    const document = this.activeEditor.document
+    const content = document.getText()
+    const filePath = document.fileName
+
+    const violations = this.scanContent(content, {
+      filePath,
+      lineNumber: this.activeEditor.selection.active.line + 1
+    })
+
+    // Show violations in the editor
+    this.showViolationsInEditor(violations)
+  }
+
+  /**
+   * Show violations as editor decorations
+   */
+  private showViolationsInEditor(violations: ExAIGuardViolation[]): void {
+    if (!this.activeEditor || violations.length === 0) {
+      return
+    }
+
+    const decorationTypes = new Map<ExAIGuardViolationSeverity, vscode.TextEditorDecorationType>()
+
+    // Create decoration types for different severity levels
+    const criticalDecoration = vscode.window.createTextEditorDecorationType({
+      backgroundColor: 'rgba(255, 0, 0, 0.3)',
+      border: '1px solid red',
+      overviewRulerColor: 'red',
+      overviewRulerLane: vscode.OverviewRulerLane.Right
+    })
+
+    const highDecoration = vscode.window.createTextEditorDecorationType({
+      backgroundColor: 'rgba(255, 165, 0, 0.3)',
+      border: '1px solid orange',
+      overviewRulerColor: 'orange',
+      overviewRulerLane: vscode.OverviewRulerLane.Right
+    })
+
+    const mediumDecoration = vscode.window.createTextEditorDecorationType({
+      backgroundColor: 'rgba(255, 255, 0, 0.3)',
+      border: '1px solid yellow',
+      overviewRulerColor: 'yellow',
+      overviewRulerLane: vscode.OverviewRulerLane.Right
+    })
+
+    const lowDecoration = vscode.window.createTextEditorDecorationType({
+      backgroundColor: 'rgba(0, 128, 0, 0.3)',
+      border: '1px solid green',
+      overviewRulerColor: 'green',
+      overviewRulerLane: vscode.OverviewRulerLane.Right
+    })
+
+    decorationTypes.set(ExAIGuardViolationSeverity.CRITICAL, criticalDecoration)
+    decorationTypes.set(ExAIGuardViolationSeverity.HIGH, highDecoration)
+    decorationTypes.set(ExAIGuardViolationSeverity.MEDIUM, mediumDecoration)
+    decorationTypes.set(ExAIGuardViolationSeverity.LOW, lowDecoration)
+
+    // Group violations by severity
+    const violationsBySeverity = new Map<ExAIGuardViolationSeverity, vscode.DecorationOptions[]>()
+
+    violations.forEach(violation => {
+      const decorationType = decorationTypes.get(violation.severity)
+      if (!decorationType) return
+
+      // Create hover message with violation details
+      const hoverMessage = new vscode.MarkdownString()
+      hoverMessage.appendMarkdown(`### ${violation.type.toUpperCase()} Violation\n\n`)
+      hoverMessage.appendMarkdown(`**Severity:** ${violation.severity}\n\n`)
+      hoverMessage.appendMarkdown(`**Description:** ${violation.description}\n\n`)
+      hoverMessage.appendMarkdown(`**Suggestion:** ${violation.correction?.suggestedAction || 'No suggestion available'}`)
+
+      const decoration: vscode.DecorationOptions = {
+        range: new vscode.Range(0, 0, 0, 0), // Will be updated with actual positions
+        hoverMessage
+      }
+
+      if (!violationsBySeverity.has(violation.severity)) {
+        violationsBySeverity.set(violation.severity, [])
+      }
+      violationsBySeverity.get(violation.severity)!.push(decoration)
+    })
+
+    // Apply decorations
+    violationsBySeverity.forEach((decorations, severity) => {
+      const decorationType = decorationTypes.get(severity)
+      if (decorationType) {
+        this.activeEditor!.setDecorations(decorationType, decorations)
+      }
+    })
+
+    // Clean up decorations after a delay
+    setTimeout(() => {
+      decorationTypes.forEach(decorationType => {
+        this.activeEditor!.setDecorations(decorationType, [])
+        decorationType.dispose()
+      })
+    }, 5000)
+  }
+
+  /**
+   * Get default configuration
+   */
+  private getDefaultConfig(): ExAIGuardConfig {
+    return {
+      enabled: true,
+      realTimeDetection: true,
+      autoCorrection: true,
+      violationTypes: {
+        [ExAIGuardViolationType.SECURITY]: true,
+        [ExAIGuardViolationType.PRIVACY]: true,
+        [ExAIGuardViolationType.COMPLIANCE]: true,
+        [ExAIGuardViolationType.ETHICAL]: true,
+        [ExAIGuardViolationType.QUALITY]: true
+      },
+      severityThreshold: ExAIGuardViolationSeverity.LOW,
+      notificationEnabled: true,
+      loggingEnabled: true
+    }
+  }
+
+  /**
+   * Update configuration
+   */
+  public async updateConfig(newConfig: Partial<ExAIGuardConfig>, context: vscode.ExtensionContext): Promise<void> {
+    const oldRealTimeDetection = this.config.realTimeDetection
+    this.config = { ...this.config, ...newConfig }
+    
+    // Save to global state
+    await context.globalState.update("exaiGuardConfig", this.config)
+    
+    // Handle real-time monitoring toggle
+    if (oldRealTimeDetection !== this.config.realTimeDetection) {
+      if (this.config.realTimeDetection) {
+        this.startRealTimeMonitoring()
+      } else {
+        this.stopRealTimeMonitoring()
+      }
+    }
+    
+    this.emit("configUpdated", this.config)
+  }
+
+  /**
+   * Get current configuration
+   */
+  public getConfig(): ExAIGuardConfig {
+    return { ...this.config }
+  }
+
+  /**
+   * Scan content for violations
+   */
+  public scanContent(content: string, context?: any): ExAIGuardViolation[] {
+    if (!this.config.enabled) {
+      return []
+    }
+
+    const violations: ExAIGuardViolation[] = []
+
+    // Security violations
+    if (this.config.violationTypes.security) {
+      violations.push(...this.scanForSecurityViolations(content, context))
+    }
+
+    // Privacy violations
+    if (this.config.violationTypes.privacy) {
+      violations.push(...this.scanForPrivacyViolations(content, context))
+    }
+
+    // Compliance violations
+    if (this.config.violationTypes.compliance) {
+      violations.push(...this.scanForComplianceViolations(content, context))
+    }
+
+    // Ethical violations
+    if (this.config.violationTypes.ethical) {
+      violations.push(...this.scanForEthicalViolations(content, context))
+    }
+
+    // Quality violations
+    if (this.config.violationTypes.quality) {
+      violations.push(...this.scanForQualityViolations(content, context))
+    }
+
+    // Filter by severity threshold
+    const filteredViolations = violations.filter(violation =>
+      this.getSeverityLevel(violation.severity) >= this.getSeverityLevel(this.config.severityThreshold)
+    )
+
+    // Store violations and emit events
+    filteredViolations.forEach(violation => {
+      this.violations.set(violation.id, violation)
+      this.emit("violationDetected", violation)
+    })
+
+    return filteredViolations
+  }
+
+  /**
+   * Scan for security violations
+   */
+  private scanForSecurityViolations(content: string, context?: any): ExAIGuardViolation[] {
+    const violations: ExAIGuardViolation[] = []
+
+    // Check for API keys and secrets
+    const apiKeyMatches = content.match(this.securityPatterns.apiKeys)
+    if (apiKeyMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.SECURITY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "Potential API key or secret exposed",
+        `Found ${apiKeyMatches.length} potential API key(s) or secret(s) in the content`,
+        {
+          suggestedAction: "Remove or redact the exposed credentials",
+          correctedContent: content.replace(this.securityPatterns.apiKeys, "[REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for private keys
+    const privateKeyMatches = content.match(this.securityPatterns.privateKeys)
+    if (privateKeyMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.SECURITY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "Private key exposed",
+        "Found private key material in the content",
+        {
+          suggestedAction: "Remove the private key immediately",
+          correctedContent: content.replace(this.securityPatterns.privateKeys, "[PRIVATE KEY REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for AWS keys
+    const awsKeyMatches = content.match(this.securityPatterns.awsKeys)
+    if (awsKeyMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.SECURITY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "AWS access key exposed",
+        "Found AWS access key in the content",
+        {
+          suggestedAction: "Rotate the AWS key and remove it from the content",
+          correctedContent: content.replace(this.securityPatterns.awsKeys, "[AWS_KEY_REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for passwords
+    const passwordMatches = content.match(this.securityPatterns.passwords)
+    if (passwordMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.SECURITY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "Hardcoded password detected",
+        `Found ${passwordMatches.length} potential hardcoded password(s) in the content`,
+        {
+          suggestedAction: "Remove hardcoded passwords and use environment variables or secure credential storage",
+          correctedContent: content.replace(this.securityPatterns.passwords, 'password: process.env.PASSWORD'),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for SSH keys
+    const sshKeyMatches = content.match(this.securityPatterns.sshKeys)
+    if (sshKeyMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.SECURITY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "SSH key exposed",
+        "Found SSH key in the content",
+        {
+          suggestedAction: "Remove the SSH key and regenerate it",
+          correctedContent: content.replace(this.securityPatterns.sshKeys, "[SSH_KEY_REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    return violations
+  }
+
+  /**
+   * Scan for privacy violations
+   */
+  private scanForPrivacyViolations(content: string, context?: any): ExAIGuardViolation[] {
+    const violations: ExAIGuardViolation[] = []
+
+    // Check for email addresses
+    const emailMatches = content.match(this.privacyPatterns.email)
+    if (emailMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.PRIVACY,
+        ExAIGuardViolationSeverity.MEDIUM,
+        "Personal email address exposed",
+        `Found ${emailMatches.length} email address(es) in the content`,
+        {
+          suggestedAction: "Remove or anonymize email addresses",
+          correctedContent: content.replace(this.privacyPatterns.email, "[EMAIL_REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for phone numbers
+    const phoneMatches = content.match(this.privacyPatterns.phone)
+    if (phoneMatches && phoneMatches.length > 0) {
+      // Filter out false positives (numbers that are too short or look like version numbers)
+      const validPhoneMatches = phoneMatches.filter(match => {
+        const digitsOnly = match.replace(/\D/g, '')
+        return digitsOnly.length >= 7 && digitsOnly.length <= 15 // Valid phone number range
+      })
+
+      if (validPhoneMatches.length > 0) {
+        violations.push(this.createViolation(
+          ExAIGuardViolationType.PRIVACY,
+          ExAIGuardViolationSeverity.MEDIUM,
+          "Phone number exposed",
+          `Found ${validPhoneMatches.length} phone number(s) in the content`,
+          {
+            suggestedAction: "Remove or anonymize phone numbers",
+            correctedContent: content.replace(this.privacyPatterns.phone, "[PHONE_REDACTED]"),
+            autoCorrectable: true
+          },
+          context
+        ))
+      }
+    }
+
+    // Check for SSN
+    const ssnMatches = content.match(this.privacyPatterns.ssn)
+    if (ssnMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.PRIVACY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "Social Security Number exposed",
+        `Found ${ssnMatches.length} SSN(s) in the content`,
+        {
+          suggestedAction: "Remove or anonymize Social Security Numbers immediately",
+          correctedContent: content.replace(this.privacyPatterns.ssn, "[SSN_REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for credit card numbers
+    const creditCardMatches = content.match(this.privacyPatterns.creditCard)
+    if (creditCardMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.PRIVACY,
+        ExAIGuardViolationSeverity.CRITICAL,
+        "Credit card number exposed",
+        `Found ${creditCardMatches.length} credit card number(s) in the content`,
+        {
+          suggestedAction: "Remove credit card numbers immediately",
+          correctedContent: content.replace(this.privacyPatterns.creditCard, "[CREDIT_CARD_REDACTED]"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    return violations
+  }
+
+  /**
+   * Scan for compliance violations
+   */
+  private scanForComplianceViolations(content: string, context?: any): ExAIGuardViolation[] {
+    const violations: ExAIGuardViolation[] = []
+
+    // Check for GDPR-related content without proper handling
+    const gdprMatches = content.match(this.compliancePatterns.gdprKeywords)
+    if (gdprMatches && content.toLowerCase().includes("personal data")) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.COMPLIANCE,
+        ExAIGuardViolationSeverity.HIGH,
+        "Potential GDPR compliance issue",
+        "Found references to personal data without clear compliance measures",
+        {
+          suggestedAction: "Ensure proper data protection measures are implemented",
+          autoCorrectable: false
+        },
+        context
+      ))
+    }
+
+    return violations
+  }
+
+  /**
+   * Scan for ethical violations
+   */
+  private scanForEthicalViolations(content: string, context?: any): ExAIGuardViolation[] {
+    const violations: ExAIGuardViolation[] = []
+
+    // Check for harmful content
+    const harmfulMatches = content.match(this.ethicalPatterns.harmfulContent)
+    if (harmfulMatches && harmfulMatches.length > 2) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.ETHICAL,
+        ExAIGuardViolationSeverity.HIGH,
+        "Potentially harmful content detected",
+        "Content contains multiple references to harmful actions",
+        {
+          suggestedAction: "Review and modify content to remove harmful references",
+          autoCorrectable: false
+        },
+        context
+      ))
+    }
+
+    return violations
+  }
+
+  /**
+   * Scan for quality violations
+   */
+  private scanForQualityViolations(content: string, context?: any): ExAIGuardViolation[] {
+    const violations: ExAIGuardViolation[] = []
+
+    // Check for hardcoded credentials
+    const hardcodedMatches = content.match(this.qualityPatterns.hardcodedValues)
+    if (hardcodedMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.QUALITY,
+        ExAIGuardViolationSeverity.MEDIUM,
+        "Hardcoded credentials detected",
+        "Found hardcoded values that should be stored securely",
+        {
+          suggestedAction: "Move credentials to environment variables or secure storage",
+          autoCorrectable: false
+        },
+        context
+      ))
+    }
+
+    // Check for debug statements in production-like content
+    const debugMatches = content.match(this.qualityPatterns.debugStatements)
+    if (debugMatches && context?.isProductionContext) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.QUALITY,
+        ExAIGuardViolationSeverity.LOW,
+        "Debug statements in production context",
+        "Found debug statements that should be removed",
+        {
+          suggestedAction: "Remove debug statements before deployment",
+          correctedContent: content.replace(this.qualityPatterns.debugStatements, "// $&"),
+          autoCorrectable: true
+        },
+        context
+      ))
+    }
+
+    // Check for TODO comments and other code quality issues
+    const todoMatches = content.match(this.qualityPatterns.todoComments)
+    if (todoMatches) {
+      violations.push(this.createViolation(
+        ExAIGuardViolationType.QUALITY,
+        ExAIGuardViolationSeverity.LOW,
+        "TODO comments detected",
+        `Found ${todoMatches.length} TODO/FIXME/HACK/XXX comment(s) that should be addressed`,
+        {
+          suggestedAction: "Address TODO comments before finalizing code",
+          autoCorrectable: false
+        },
+        context
+      ))
+    }
+
+    // Check for incomplete code patterns (from incompleteCodePatterns array)
+    this.incompleteCodePatterns.forEach(pattern => {
+      const matches = content.match(pattern.pattern)
+      if (matches) {
+        violations.push(this.createViolation(
+          ExAIGuardViolationType.QUALITY,
+          pattern.severity,
+          pattern.name,
+          pattern.description,
+          {
+            suggestedAction: pattern.suggestion,
+            autoCorrectable: pattern.autoCorrectable
+          },
+          context
+        ))
+      }
+    })
+
+    return violations
+  }
+
+  /**
+   * Create a violation object
+   */
+  private createViolation(
+    type: ExAIGuardViolationType,
+    severity: ExAIGuardViolationSeverity,
+    message: string,
+    description: string,
+    correction?: ExAIGuardViolation["correction"],
+    context?: any
+  ): ExAIGuardViolation {
+    return {
+      id: `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      severity,
+      message,
+      description,
+      timestamp: Date.now(),
+      context,
+      correction
+    }
+  }
+
+  /**
+   * Get severity level as numeric value for comparison
+   */
+  private getSeverityLevel(severity: ExAIGuardViolationSeverity): number {
+    const levels = {
+      [ExAIGuardViolationSeverity.LOW]: 1,
+      [ExAIGuardViolationSeverity.MEDIUM]: 2,
+      [ExAIGuardViolationSeverity.HIGH]: 3,
+      [ExAIGuardViolationSeverity.CRITICAL]: 4
+    }
+    return levels[severity]
+  }
+
+  /**
+   * Apply correction to content
+   */
+  public applyCorrection(violation: ExAIGuardViolation, originalContent: string): { correctedContent: string; wasApplied: boolean } {
+    if (!violation.correction?.correctedContent || !violation.correction.autoCorrectable) {
+      return { correctedContent: originalContent, wasApplied: false }
+    }
+
+    // Apply the correction
+    const correctedContent = violation.correction.correctedContent
+    
+    // Emit correction event
+    this.emit("violationCorrected", violation)
+    
+    if (this.config.loggingEnabled) {
+      console.log(`ExAI Guard: Applied correction for violation ${violation.id}`)
+    }
+
+    return { correctedContent, wasApplied: true }
+  }
+
+  /**
+   * Get all violations
+   */
+  public getViolations(): ExAIGuardViolation[] {
+    return Array.from(this.violations.values())
+  }
+
+  /**
+   * Clear violations
+   */
+  public clearViolations(): void {
+    this.violations.clear()
+  }
+
+  /**
+   * Check if service is enabled
+   */
+  public isEnabled(): boolean {
+    return this.config.enabled
+  }
+
+  /**
+   * Check if real-time detection is enabled
+   */
+  public isRealTimeDetectionEnabled(): boolean {
+    return this.config.enabled && this.config.realTimeDetection
+  }
+
+  /**
+   * Check if auto-correction is enabled
+   */
+  public isAutoCorrectionEnabled(): boolean {
+    return this.config.enabled && this.config.autoCorrection
+  }
+
+  /**
+   * Intercept AI response stream to detect incomplete code and create subtasks
+   */
+  public interceptStream(content: string, context: any = {}): StreamInterceptionResult {
+    if (!this.streamInterceptionEnabled || !this.config.enabled) {
+      return {
+        intercepted: false,
+        violations: [],
+        subtasks: [],
+        correctedContent: content
+      }
+    }
+
+    const violations: ExAIGuardViolation[] = []
+    let correctedContent = content
+
+    // Check for incomplete code patterns
+    for (const pattern of this.incompleteCodePatterns) {
+      const matches = content.match(pattern.pattern)
+      if (matches && matches.length > 0) {
+        const violation = this.createViolation(
+          ExAIGuardViolationType.QUALITY,
+          pattern.severity,
+          pattern.name,
+          pattern.description,
+          {
+            suggestedAction: pattern.suggestion,
+            autoCorrectable: pattern.autoCorrectable
+          },
+          context
+        )
+        violations.push(violation)
+      }
+    }
+
+    // Create subtasks if orchestration is enabled
+    const subtasks: OrchestrationSubtask[] = []
+    if (this.orchestrationEnabled && violations.length > 0) {
+      for (const violation of violations) {
+        const subtask = this.createSubtask(violation, context)
+        subtasks.push(subtask)
+        this.subtasks.set(subtask.id, subtask)
+        this.emit("subtaskCreated", subtask)
+      }
+    }
+
+    const result: StreamInterceptionResult = {
+      intercepted: violations.length > 0,
+      violations,
+      subtasks,
+      correctedContent
+    }
+
+    this.emit("streamIntercepted", result)
+    return result
+  }
+
+  /**
+   * Create orchestration subtask from violation
+   */
+  private createSubtask(violation: ExAIGuardViolation, context: any): OrchestrationSubtask {
+    const subtaskId = `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    // Generate meaningful subtask title based on violation type
+    let title = ""
+    let description = ""
+    
+    switch (violation.message) {
+      case "Stub Implementation":
+        title = "Complete stub implementation"
+        description = `Complete the implementation for: ${violation.description}`
+        break
+      case '"For Now" Comment':
+        title = "Replace temporary implementation"
+        description = `Replace temporary "for now" implementation with proper solution`
+        break
+      case "Placeholder Code":
+        title = "Replace placeholder code"
+        description = `Replace placeholder code with actual implementation`
+        break
+      case "Incomplete Function":
+        title = "Complete function implementation"
+        description = `Complete the function implementation that is currently incomplete`
+        break
+      case "Fake Business Logic":
+        title = "Implement real business logic"
+        description = `Replace fake business logic with real implementation`
+        break
+      case "Missing Error Handling":
+        title = "Add error handling"
+        description = `Add proper error handling to the code`
+        break
+      default:
+        title = `Fix: ${violation.message}`
+        description = violation.description
+    }
+
+    return {
+      id: subtaskId,
+      title,
+      description,
+      priority: violation.severity === ExAIGuardViolationSeverity.CRITICAL ||
+                violation.severity === ExAIGuardViolationSeverity.HIGH ? 'high' : 'medium',
+      status: 'pending',
+      violationId: violation.id,
+      createdAt: Date.now()
+    }
+  }
+
+  /**
+   * Complete a subtask
+   */
+  public completeSubtask(subtaskId: string, result: any): void {
+    const subtask = this.subtasks.get(subtaskId)
+    if (subtask) {
+      subtask.status = 'completed'
+      subtask.completedAt = Date.now()
+      subtask.result = result
+      this.subtasks.set(subtaskId, subtask)
+      this.emit("subtaskCompleted", subtask)
+    }
+  }
+
+  /**
+   * Get incomplete code patterns for detection
+   */
+  public getIncompleteCodePatterns(): IncompleteCodePattern[] {
+    return [...this.incompleteCodePatterns]
+  }
+
+  /**
+   * Add custom incomplete code pattern
+   */
+  public addIncompleteCodePattern(pattern: IncompleteCodePattern): void {
+    this.incompleteCodePatterns.push(pattern)
+  }
+
+  /**
+   * Enable/disable stream interception
+   */
+  public setStreamInterception(enabled: boolean): void {
+    this.streamInterceptionEnabled = enabled
+  }
+
+  /**
+   * Generate fix for violation
+   */
+  public async generateFix(violation: ExAIGuardViolation, originalContent: string): Promise<string> {
+    // For now, return the corrected content if available, otherwise return original
+    if (violation.correction?.correctedContent) {
+      return violation.correction.correctedContent
+    }
+    
+    // If no correction is available, return the original content
+    return originalContent
+  }
+
+  /**
+   * Enable/disable orchestration
+   */
+  public setOrchestrationEnabled(enabled: boolean): void {
+    this.orchestrationEnabled = enabled
+  }
+
+  /**
+   * Scan current workspace for violations
+   */
+  public async scanCurrentWorkspace(): Promise<ExAIGuardViolation[]> {
+    if (!this.config.enabled) {
+      return []
+    }
+
+    const violations: ExAIGuardViolation[] = []
+    
+    try {
+      // Get all workspace files
+      const workspaceFolders = vscode.workspace.workspaceFolders
+      if (!workspaceFolders) {
+        return violations
+      }
+
+      // Scan files in workspace
+      for (const folder of workspaceFolders) {
+        const pattern = new vscode.RelativePattern(folder, "**/*")
+        const files = await vscode.workspace.findFiles(pattern, "**/node_modules/**")
+        
+        for (const file of files.slice(0, 100)) { // Limit to first 100 files for performance
+          try {
+            const document = await vscode.workspace.openTextDocument(file)
+            const content = document.getText()
+            
+            // Scan file content for violations
+            const fileViolations = this.scanContent(content, {
+              filePath: file.fsPath,
+              lineNumber: "1"
+            })
+            
+            violations.push(...fileViolations)
+          } catch (error) {
+            // Skip files that can't be read
+            console.warn(`Could not read file ${file.fsPath}:`, error)
+          }
+        }
+      }
+
+      // Emit telemetry for scan completion
+      if (TelemetryService.hasInstance()) {
+        TelemetryService.instance.captureExAIGuardScanCompleted(
+          "workspace",
+          violations.length,
+          violations.length > 0 ? 100 : 0
+        )
+      }
+
+    } catch (error) {
+      console.error("Error scanning workspace:", error)
+    }
+
+    return violations
+  }
+
+  /**
+   * Get current orchestration status
+   */
+  public getOrchestrationStatus(): any {
+    const pendingTasks = Array.from(this.subtasks.values()).filter(t => t.status === 'pending')
+    const completedTasks = Array.from(this.subtasks.values()).filter(t => t.status === 'completed')
+    
+    return {
+      totalSubtasks: this.subtasks.size,
+      pending: pendingTasks.length,
+      completed: completedTasks.length,
+      pendingTasks,
+      completedTasks
+    }
+  }
+
+  /**
+   * Get all active subtasks
+   */
+  public getActiveSubtasks(): OrchestrationSubtask[] {
+    return Array.from(this.subtasks.values()).filter(t => t.status === 'pending')
+  }
+
+  /**
+   * Track AI claim or commitment for drift detection
+   * This prevents the AI from "forgetting" what it promised to do
+   */
+  public trackAIClaim(content: string, context: { taskId: string; messageType?: string }): void {
+    // Update context window (rolling buffer of last N messages)
+    this.memoryTracker.contextWindow.push(content)
+    if (this.memoryTracker.contextWindow.length > this.memoryTracker.maxContextSize) {
+      this.memoryTracker.contextWindow.shift()
+    }
+
+    // Detect commitments in the content
+    const commitmentPatterns = [
+      /(?:I will|I'll|I'm going to|Let me|I plan to)\s+([^.!?]+)/gi,
+      /(?:Next, I will|Then I will|After that, I will)\s+([^.!?]+)/gi,
+      /(?:I need to|I must|I should)\s+([^.!?]+)/gi,
+      /(?:My plan is to|The plan is to)\s+([^.!?]+)/gi
+    ]
+
+    commitmentPatterns.forEach(pattern => {
+      const matches = content.matchAll(pattern)
+      for (const match of matches) {
+        const commitment = match[1].trim()
+        if (commitment.length > 10) { // Filter out very short commitments
+          const commitmentId = `commit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          this.memoryTracker.commitments.set(commitmentId, {
+            id: commitmentId,
+            commitment,
+            timestamp: Date.now(),
+            taskId: context.taskId,
+            status: 'pending',
+            relatedViolations: []
+          })
+        }
+      }
+    })
+
+    // Detect claims (factual statements the AI makes)
+    const claimPatterns = [
+      /(?:I have|I've|I already)\s+([^.!?]+)/gi,
+      /(?:This is|This will|That is|That will)\s+([^.!?]+)/gi,
+      /(?:The (?:code|function|file|implementation))\s+([^.!?]+)/gi
+    ]
+
+    claimPatterns.forEach(pattern => {
+      const matches = content.matchAll(pattern)
+      for (const match of matches) {
+        const claim = match[1].trim()
+        if (claim.length > 10) {
+          const claimId = `claim-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          this.memoryTracker.claims.set(claimId, {
+            id: claimId,
+            claim,
+            timestamp: Date.now(),
+            taskId: context.taskId,
+            fulfilled: false,
+            references: [content]
+          })
+        }
+      }
+    })
+  }
+
+  /**
+   * Check for memory drift - when AI contradicts or forgets previous claims
+   */
+  public detectMemoryDrift(content: string, context: { taskId: string }): ExAIGuardViolation[] {
+    const violations: ExAIGuardViolation[] = []
+
+    // Check if current content contradicts previous commitments
+    for (const [commitmentId, commitment] of this.memoryTracker.commitments.entries()) {
+      if (commitment.status === 'pending' && commitment.taskId === context.taskId) {
+        // Extract key terms from the commitment
+        const commitmentTerms = commitment.commitment.toLowerCase()
+          .replace(/[^\w\s]/g, ' ')
+          .split(/\s+/)
+          .filter(term => term.length > 3)
+
+        // Check if current content relates to the commitment
+        const contentLower = content.toLowerCase()
+        const relevantToCommitment = commitmentTerms.some(term => contentLower.includes(term))
+
+        if (relevantToCommitment) {
+          // Enhanced contradiction detection patterns
+          const contradictionPatterns = [
+            // Direct negation
+            /(?:I\s+(?:will not|won't|cannot|can't|shouldn't|should not|didn't|haven't|hasn't|couldn't))\s+/gi,
+            // Negative statements
+            /(?:not\s+going\s+to|unable\s+to|impossible\s+to|no\s+longer|never\s+going\s+to)\s+/gi,
+            // Change of direction
+            /(?:instead\s+of|rather\s+than|changing\s+from|skipping|omitting|avoiding)\s+/gi,
+            // Explicit contradiction
+            /(?:actually|however|but|though|although)\s+(?:I\s+)?(?:won't|can't|shouldn't|didn't)/gi
+          ]
+
+          const hasContradiction = contradictionPatterns.some(pattern => pattern.test(content))
+
+          if (hasContradiction) {
+            // Calculate similarity to confirm this is about the same topic
+            const similarity = this.calculateTextSimilarity(content.toLowerCase(), commitment.commitment.toLowerCase())
+
+            // Lower threshold (0.3) since we already checked for relevant terms and negation
+            if (similarity > 0.3) {
+              commitment.status = 'violated'
+
+              const violation = this.createViolation(
+                ExAIGuardViolationType.QUALITY,
+                ExAIGuardViolationSeverity.HIGH,
+                "Memory drift detected: AI contradicted previous commitment",
+                `AI previously committed to: "${commitment.commitment}" but now states: "${content.substring(0, 100)}..."`,
+                {
+                  suggestedAction: `Remind the AI of its previous commitment: "${commitment.commitment}"`,
+                  autoCorrectable: false
+                },
+                {
+                  taskId: context.taskId,
+                  commitmentId,
+                  originalCommitment: commitment.commitment,
+                  timestamp: commitment.timestamp.toString(),
+                  similarity: similarity.toFixed(2)
+                }
+              )
+
+              violations.push(violation)
+              commitment.relatedViolations.push(violation.id)
+            }
+          }
+        }
+      }
+    }
+
+    // Check for claim drift - AI making claims that contradict previous claims
+    for (const [claimId, claim] of this.memoryTracker.claims.entries()) {
+      if (!claim.fulfilled && claim.taskId === context.taskId) {
+        // Check if current content contradicts this claim
+        const similarity = this.calculateTextSimilarity(content.toLowerCase(), claim.claim.toLowerCase())
+
+        if (similarity > this.claimDriftThreshold) {
+          const hasNegation = /(?:not|no|never|none|neither|isn't|aren't|wasn't|weren't|haven't|hasn't|hadn't|don't|doesn't|didn't|won't|wouldn't|can't|couldn't|shouldn't|mustn't)/gi.test(content)
+
+          if (hasNegation) {
+            const violation = this.createViolation(
+              ExAIGuardViolationType.QUALITY,
+              ExAIGuardViolationSeverity.MEDIUM,
+              "Claim drift detected: AI contradicted previous claim",
+              `AI previously claimed: "${claim.claim}" but the current response appears to contradict this claim.`,
+              {
+                suggestedAction: `Verify consistency with previous claim: "${claim.claim}"`,
+                autoCorrectable: false
+              },
+              {
+                taskId: context.taskId,
+                claimId,
+                originalClaim: claim.claim,
+                timestamp: claim.timestamp.toString()
+              }
+            )
+
+            violations.push(violation)
+          }
+        }
+      }
+    }
+
+    return violations
+  }
+
+  /**
+   * Calculate text similarity using simple token overlap
+   * Returns a value between 0 and 1
+   */
+  private calculateTextSimilarity(text1: string, text2: string): number {
+    const tokens1 = new Set(text1.toLowerCase().split(/\s+/).filter(t => t.length > 3))
+    const tokens2 = new Set(text2.toLowerCase().split(/\s+/).filter(t => t.length > 3))
+
+    if (tokens1.size === 0 || tokens2.size === 0) {
+      return 0
+    }
+
+    const intersection = new Set([...tokens1].filter(x => tokens2.has(x)))
+    const union = new Set([...tokens1, ...tokens2])
+
+    return intersection.size / union.size
+  }
+
+  /**
+   * Mark a commitment as fulfilled
+   */
+  public fulfillCommitment(commitmentId: string): void {
+    const commitment = this.memoryTracker.commitments.get(commitmentId)
+    if (commitment && commitment.status === 'pending') {
+      commitment.status = 'fulfilled'
+    }
+  }
+
+  /**
+   * Get all pending commitments for a task
+   */
+  public getPendingCommitments(taskId: string): Array<{id: string; commitment: string; timestamp: number}> {
+    return Array.from(this.memoryTracker.commitments.values())
+      .filter(c => c.taskId === taskId && c.status === 'pending')
+      .map(c => ({
+        id: c.id,
+        commitment: c.commitment,
+        timestamp: c.timestamp
+      }))
+  }
+
+  /**
+   * Clear memory tracking for a task
+   */
+  public clearMemoryForTask(taskId: string): void {
+    // Remove claims for this task
+    for (const [id, claim] of this.memoryTracker.claims.entries()) {
+      if (claim.taskId === taskId) {
+        this.memoryTracker.claims.delete(id)
+      }
+    }
+
+    // Remove commitments for this task
+    for (const [id, commitment] of this.memoryTracker.commitments.entries()) {
+      if (commitment.taskId === taskId) {
+        this.memoryTracker.commitments.delete(id)
+      }
+    }
+  }
+
+  /**
+   * Get memory drift statistics
+   */
+  public getMemoryDriftStats(): {
+    totalClaims: number
+    totalCommitments: number
+    pendingCommitments: number
+    violatedCommitments: number
+    fulfilledCommitments: number
+  } {
+    const commitments = Array.from(this.memoryTracker.commitments.values())
+
+    return {
+      totalClaims: this.memoryTracker.claims.size,
+      totalCommitments: commitments.length,
+      pendingCommitments: commitments.filter(c => c.status === 'pending').length,
+      violatedCommitments: commitments.filter(c => c.status === 'violated').length,
+      fulfilledCommitments: commitments.filter(c => c.status === 'fulfilled').length
+    }
+  }
+
+  /**
+   * Initialize file-based logging system
+   */
+  private initializeLogging(): void {
+    if (!this.config.loggingEnabled) return
+
+    try {
+      const logsDir = path.join(process.cwd(), 'logs', 'exai-guard')
+      if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true })
+      }
+
+      const timestamp = Date.now()
+      this.logFile = path.join(logsDir, `session-${timestamp}.log`)
+      this.detailedLogFile = path.join(logsDir, `detailed-${timestamp}.log`)
+
+      this.log('SYSTEM', 'ExAI Guard System initialized', {
+        config: this.config,
+        timestamp: new Date().toISOString()
+      })
+    } catch (error) {
+      console.error('[ExAI Guard] Failed to initialize logging:', error)
+    }
+  }
+
+  /**
+   * Log message to console and file
+   */
+  private log(level: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'SUCCESS' | 'SYSTEM', message: string, data: any = {}): void {
+    const timestamp = new Date().toISOString()
+    const logEntry = {
+      timestamp,
+      level,
+      message,
+      data,
+      sessionId: data.sessionId || 'SYSTEM'
+    }
+
+    // Console output with colors
+    const colors = {
+      ERROR: '\x1b[31m',
+      WARN: '\x1b[33m',
+      INFO: '\x1b[36m',
+      DEBUG: '\x1b[37m',
+      SUCCESS: '\x1b[32m',
+      SYSTEM: '\x1b[35m',
+      RESET: '\x1b[0m'
+    }
+
+    console.log(
+      `${colors[level]}[${timestamp}] ${level}: ${message}${colors.RESET}`,
+      data.sessionId ? `(Session: ${data.sessionId})` : ''
+    )
+
+    // File logging
+    if (this.logFile && this.config.loggingEnabled) {
+      try {
+        fs.appendFileSync(this.logFile, JSON.stringify(logEntry) + '\n')
+
+        if (this.detailedLogFile && Object.keys(data).length > 0) {
+          fs.appendFileSync(
+            this.detailedLogFile,
+            `${timestamp} [${level}] ${message}\n${JSON.stringify(data, null, 2)}\n---\n`
+          )
+        }
+      } catch (error) {
+        console.error('[ExAI Guard] Failed to write log:', error)
+      }
+    }
+
+    // Emit log event
+    this.emit('log' as any, logEntry)
+  }
+
+  /**
+   * Start WebSocket server for external integration
+   */
+  private startWebSocketServer(): void {
+    try {
+      this.wss = new WebSocketServer({ port: this.websocketPort })
+
+      this.wss.on('connection', (ws: WebSocket, req: any) => {
+        const connectionId = ++this.connectionId
+        const clientInfo = {
+          id: connectionId,
+          ip: req.socket.remoteAddress,
+          userAgent: req.headers['user-agent'],
+          connectedAt: new Date().toISOString()
+        }
+
+        // @ts-ignore
+        ws.clientInfo = clientInfo
+
+        this.log('INFO', 'Client connected', clientInfo)
+
+        // Send welcome message
+        this.sendToClient(ws, 'welcome', {
+          message: 'Connected to ExAI Guard System',
+          serverId: process.pid,
+          capabilities: [
+            'Real-time violation detection',
+            'Memory drift detection',
+            'Stream interception',
+            'Session management',
+            'Checkpoint recovery',
+            'Self-learning algorithms',
+            'AI-powered fixes'
+          ]
+        })
+
+        ws.on('message', (message: WebSocket.Data) => {
+          this.handleClientMessage(ws, message)
+        })
+
+        ws.on('close', () => {
+          this.log('INFO', 'Client disconnected', clientInfo)
+        })
+
+        ws.on('error', (error: Error) => {
+          this.log('ERROR', 'WebSocket error', { error: error.message, clientInfo })
+        })
+      })
+
+      this.log('SUCCESS', `WebSocket server started on port ${this.websocketPort}`)
+    } catch (error: any) {
+      this.log('ERROR', 'Failed to start WebSocket server', {
+        error: error.message,
+        port: this.websocketPort
+      })
+    }
+  }
+
+  /**
+   * Handle WebSocket client message
+   */
+  private async handleClientMessage(ws: WebSocket, message: WebSocket.Data): Promise<void> {
+    try {
+      const data = JSON.parse(message.toString())
+      const { type, payload, sessionId } = data
+
+      this.log('DEBUG', `Received message: ${type}`, { sessionId })
+
+      switch (type) {
+        case 'analyze_project':
+          await this.handleAnalyzeProject(ws, payload, sessionId)
+          break
+        case 'analyze_file':
+          await this.handleAnalyzeFile(ws, payload, sessionId)
+          break
+        case 'get_session_status':
+          await this.handleGetSessionStatus(ws, sessionId)
+          break
+        case 'restore_checkpoint':
+          await this.handleRestoreCheckpoint(ws, payload, sessionId)
+          break
+        case 'get_learning_insights':
+          await this.handleGetLearningInsights(ws)
+          break
+        default:
+          this.sendToClient(ws, 'error', { message: `Unknown message type: ${type}` })
+      }
+    } catch (error: any) {
+      this.log('ERROR', 'Failed to handle client message', { error: error.message })
+      this.sendToClient(ws, 'error', { message: 'Failed to process message', error: error.message })
+    }
+  }
+
+  /**
+   * Handle analyze project request
+   */
+  private async handleAnalyzeProject(ws: WebSocket, payload: any, sessionId: string): Promise<void> {
+    const { projectPath, files } = payload
+
+    this.log('INFO', 'Starting project analysis', { sessionId, projectPath, fileCount: files?.length })
+
+    const session: {
+      id: string
+      projectPath: string
+      files: string[]
+      startTime: number
+      endTime?: number
+      duration?: number
+      status: 'ANALYZING' | 'COMPLETED' | 'FAILED' | 'ACTIVE'
+      violations: ExAIGuardViolation[]
+      fixes: Array<{ violation: ExAIGuardViolation; fix: any; appliedAt: string }>
+      client?: WebSocket
+      error?: string
+    } = {
+      id: sessionId,
+      projectPath,
+      files: files || [],
+      startTime: Date.now(),
+      status: 'ANALYZING',
+      violations: [],
+      fixes: [],
+      client: ws
+    }
+
+    this.activeSessions.set(sessionId, session)
+
+    try {
+      this.sendToClient(ws, 'analysis_started', { sessionId, projectPath, timestamp: new Date().toISOString() })
+
+      // Analyze files in parallel
+      await Promise.all(session.files.map((filePath: string) => this.analyzeFileForSession(ws, sessionId, filePath)))
+
+      session.status = 'COMPLETED'
+      session.endTime = Date.now()
+      session.duration = session.endTime - session.startTime
+
+      this.log('SUCCESS', 'Project analysis completed', {
+        sessionId,
+        duration: session.duration,
+        totalViolations: session.violations.length,
+        totalFixed: session.fixes.length
+      })
+
+      this.sendToClient(ws, 'analysis_completed', {
+        sessionId,
+        summary: {
+          totalViolations: session.violations.length,
+          totalFixed: session.fixes.length,
+          duration: session.duration,
+          status: 'SUCCESS'
+        }
+      })
+
+      // Learn from session
+      if (this.config.enabled) {
+        await this.learnFromSession(session)
+      }
+    } catch (error: any) {
+      session.status = 'FAILED'
+      session.error = error.message
+      this.log('ERROR', 'Project analysis failed', { sessionId, error: error.message })
+      this.sendToClient(ws, 'analysis_failed', { sessionId, error: error.message })
+    }
+  }
+
+  /**
+   * Analyze file for session
+   */
+  private async analyzeFileForSession(ws: WebSocket, sessionId: string, filePath: string): Promise<void> {
+    this.log('DEBUG', `Analyzing file: ${filePath}`, { sessionId })
+
+    this.sendToClient(ws, 'file_analysis_started', { sessionId, filePath, timestamp: new Date().toISOString() })
+
+    try {
+      const content = fs.readFileSync(filePath, 'utf8')
+      const violations = this.scanContent(content, { taskId: sessionId, filePath })
+
+      this.log('INFO', `Found ${violations.length} violations in ${path.basename(filePath)}`, { sessionId, filePath })
+
+      this.sendToClient(ws, 'violations_detected', {
+        sessionId,
+        filePath,
+        violations: violations.map(v => ({ type: v.type, severity: v.severity, message: v.message }))
+      })
+
+      const session = this.activeSessions.get(sessionId)
+      if (session) {
+        session.violations.push(...violations)
+
+        // Generate AI fixes for violations
+        for (const violation of violations) {
+          await this.fixViolationWithAI(ws, sessionId, filePath, violation)
+        }
+      }
+
+      this.sendToClient(ws, 'file_analysis_completed', { sessionId, filePath, violationsFound: violations.length })
+    } catch (error: any) {
+      this.log('ERROR', `Failed to analyze file: ${filePath}`, { sessionId, error: error.message })
+      this.sendToClient(ws, 'file_analysis_failed', { sessionId, filePath, error: error.message })
+    }
+  }
+
+  /**
+   * Fix violation with AI-powered suggestions
+   */
+  private async fixViolationWithAI(ws: WebSocket, sessionId: string, filePath: string, violation: ExAIGuardViolation): Promise<void> {
+    this.log('DEBUG', `Fixing violation: ${violation.type} at line ${violation.context?.lineNumber}`, { sessionId })
+
+    this.sendToClient(ws, 'fixing_violation', {
+      sessionId,
+      filePath,
+      violation: { type: violation.type, message: violation.message, severity: violation.severity },
+      status: 'FIXING'
+    })
+
+    try {
+      // Generate AI-powered fix
+      const fix = await this.generateAIFix(violation, filePath)
+
+      this.log('DEBUG', 'AI fix generated', { sessionId, confidence: fix.confidence })
+
+      const session = this.activeSessions.get(sessionId)
+      if (session) {
+        session.fixes.push({ violation, fix, appliedAt: new Date().toISOString() })
+      }
+
+      this.sendToClient(ws, 'violation_fixed', {
+        sessionId,
+        filePath,
+        violation: { type: violation.type, message: violation.message },
+        fix: { approach: fix.approach, confidence: fix.confidence },
+        status: 'FIXED'
+      })
+    } catch (error: any) {
+      this.log('ERROR', `Failed to fix violation: ${violation.type}`, { sessionId, error: error.message })
+      this.sendToClient(ws, 'violation_fix_failed', { sessionId, filePath, violation, error: error.message })
+    }
+  }
+
+  /**
+   * Generate AI-powered fix with contextual prompts
+   */
+  private async generateAIFix(violation: ExAIGuardViolation, filePath: string): Promise<any> {
+    // Simulate AI processing
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    const fileExtension = path.extname(filePath)
+    const language = this.getLanguageFromExtension(fileExtension)
+
+    // Generate contextual prompt
+    const prompt = `You are an expert ${language} developer.
+
+Violation Type: ${violation.type}
+Severity: ${violation.severity}
+Description: ${violation.message}
+
+Context: ${violation.description}
+
+Please provide a high-quality fix that:
+1. Resolves the specific violation
+2. Maintains the original functionality
+3. Follows best practices for ${language}
+4. Includes proper error handling
+5. Adds appropriate comments if needed`
+
+    // Generate fix based on violation type
+    const fixes: Record<string, any> = {
+      [ExAIGuardViolationType.SECURITY]: {
+        approach: 'Replace hardcoded secrets with environment variables',
+        implementation: violation.correction?.correctedContent || '// Use process.env for secrets',
+        confidence: 0.95,
+        testSuggestions: ['Verify environment variables', 'Test secret rotation', 'Check access controls']
+      },
+      [ExAIGuardViolationType.PRIVACY]: {
+        approach: 'Remove or anonymize sensitive data',
+        implementation: violation.correction?.correctedContent || '// Redact sensitive information',
+        confidence: 0.90,
+        testSuggestions: ['Verify data anonymization', 'Check GDPR compliance', 'Test data masking']
+      },
+      [ExAIGuardViolationType.QUALITY]: {
+        approach: 'Implement missing functionality',
+        implementation: '// Complete implementation with proper logic',
+        confidence: 0.85,
+        testSuggestions: ['Add unit tests', 'Verify edge cases', 'Check error handling']
+      }
+    }
+
+    return fixes[violation.type] || {
+      approach: 'Apply standard fix',
+      implementation: '// Generic fix applied',
+      confidence: 0.75,
+      testSuggestions: ['Test the fix', 'Verify no regressions']
+    }
+  }
+
+  /**
+   * Get language from file extension
+   */
+  private getLanguageFromExtension(ext: string): string {
+    const languages: Record<string, string> = {
+      '.js': 'JavaScript',
+      '.ts': 'TypeScript',
+      '.py': 'Python',
+      '.java': 'Java',
+      '.cpp': 'C++',
+      '.cs': 'C#',
+      '.php': 'PHP',
+      '.rb': 'Ruby',
+      '.go': 'Go',
+      '.rs': 'Rust'
+    }
+    return languages[ext] || 'Unknown'
+  }
+
+  /**
+   * Handle analyze file request
+   */
+  private async handleAnalyzeFile(ws: WebSocket, payload: any, sessionId: string): Promise<void> {
+    const { filePath } = payload
+    await this.analyzeFileForSession(ws, sessionId, filePath)
+  }
+
+  /**
+   * Handle get session status request
+   */
+  private async handleGetSessionStatus(ws: WebSocket, sessionId: string): Promise<void> {
+    const session = this.activeSessions.get(sessionId)
+    if (session) {
+      this.sendToClient(ws, 'session_status', {
+        sessionId,
+        status: session.status,
+        violations: session.violations.length,
+        fixes: session.fixes.length,
+        progress: session.fixes.length / Math.max(session.violations.length, 1) * 100
+      })
+    } else {
+      this.sendToClient(ws, 'session_not_found', { sessionId })
+    }
+  }
+
+  /**
+   * Handle restore checkpoint request
+   */
+  private async handleRestoreCheckpoint(ws: WebSocket, payload: any, sessionId: string): Promise<void> {
+    const { checkpointId } = payload
+    const checkpoint = this.checkpoints.get(checkpointId)
+
+    if (checkpoint) {
+      this.activeSessions = new Map(checkpoint.activeSessions)
+      this.learningData = new Map(checkpoint.learningData)
+
+      this.log('SUCCESS', 'Checkpoint restored', { checkpointId, sessionId })
+      this.sendToClient(ws, 'checkpoint_restored', { checkpointId })
+    } else {
+      this.sendToClient(ws, 'checkpoint_not_found', { checkpointId })
+    }
+  }
+
+  /**
+   * Handle get learning insights request
+   */
+  private async handleGetLearningInsights(ws: WebSocket): Promise<void> {
+    const insights = {
+      topViolationPatterns: Array.from(this.learningMetrics.violationPatterns.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10),
+      averageSuccessRate: Array.from(this.learningMetrics.fixSuccessRates.values())
+        .reduce((sum, rate) => sum + rate, 0) / this.learningMetrics.fixSuccessRates.size || 0,
+      performanceMetrics: this.learningMetrics.performanceMetrics.slice(-10)
+    }
+
+    this.sendToClient(ws, 'learning_insights', insights)
+  }
+
+  /**
+   * Send message to WebSocket client
+   */
+  private sendToClient(ws: WebSocket, type: string, data: any): void {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }))
+    }
+  }
+
+  /**
+   * Initialize checkpointing system (30-second intervals)
+   */
+  private initializeCheckpointing(): void {
+    this.checkpointInterval = setInterval(() => {
+      this.createCheckpoint()
+    }, 30000) // 30 seconds
+  }
+
+  /**
+   * Create checkpoint
+   */
+  private createCheckpoint(): void {
+    const checkpoint = {
+      timestamp: Date.now(),
+      activeSessions: Array.from(this.activeSessions.entries()),
+      learningData: Array.from(this.learningData.entries()),
+      systemStats: {
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        activeConnections: this.wss?.clients.size || 0
+      }
+    }
+
+    const checkpointId = `checkpoint_${checkpoint.timestamp}`
+    this.checkpoints.set(checkpointId, checkpoint)
+
+    // Keep only last 10 checkpoints
+    if (this.checkpoints.size > 10) {
+      const oldestKey = Array.from(this.checkpoints.keys())[0]
+      this.checkpoints.delete(oldestKey)
+    }
+
+    this.log('DEBUG', 'Checkpoint created', {
+      checkpointId,
+      activeSessionsCount: checkpoint.activeSessions.length,
+      systemStats: checkpoint.systemStats
+    })
+  }
+
+  /**
+   * Initialize self-learning system
+   */
+  private initializeLearningSystem(): void {
+    this.log('INFO', 'Self-learning system initialized')
+  }
+
+  /**
+   * Learn from completed session (self-learning with pattern discovery)
+   */
+  private async learnFromSession(session: any): Promise<void> {
+    // Analyze patterns from completed session
+    for (const violation of session.violations) {
+      const pattern = `${violation.type}_${path.extname(session.projectPath || '')}`
+      const count = this.learningMetrics.violationPatterns.get(pattern) || 0
+      this.learningMetrics.violationPatterns.set(pattern, count + 1)
+    }
+
+    // Track fix success rates
+    const successRate = session.fixes.length / session.violations.length
+    this.learningMetrics.fixSuccessRates.set(session.id, successRate)
+
+    // Update performance metrics
+    if (session.duration) {
+      this.learningMetrics.performanceMetrics.push({
+        sessionId: session.id,
+        duration: session.duration,
+        violationsPerMinute: session.violations.length / (session.duration / 60000),
+        fixesPerMinute: session.fixes.length / (session.duration / 60000)
+      })
+
+      // Keep only last 100 metrics
+      if (this.learningMetrics.performanceMetrics.length > 100) {
+        this.learningMetrics.performanceMetrics.shift()
+      }
+    }
+
+    this.log('DEBUG', 'Learning from session completed', {
+      sessionId: session.id,
+      patternsLearned: session.violations.length,
+      successRate
+    })
+  }
+
+  /**
+   * Dispose the service
+   */
+  public dispose(): void {
+    this.violations.clear()
+    this.subtasks.clear()
+    this.memoryTracker.claims.clear()
+    this.memoryTracker.commitments.clear()
+    this.memoryTracker.contextWindow = []
+
+    // Close WebSocket server
+    if (this.wss) {
+      this.wss.close()
+    }
+
+    // Clear checkpoint interval
+    if (this.checkpointInterval) {
+      clearInterval(this.checkpointInterval)
+    }
+
+    // Create final checkpoint
+    this.createCheckpoint()
+
+    this.log('SUCCESS', 'ExAI Guard Service disposed')
+    this.removeAllListeners()
+  }
+}

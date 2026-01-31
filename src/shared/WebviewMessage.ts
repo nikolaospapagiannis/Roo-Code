@@ -7,8 +7,8 @@ import {
 	type InstallMarketplaceItemOptions,
 	type MarketplaceItem,
 	marketplaceItemSchema,
-} from "@roo-code/types"
-import type { ShareVisibility } from "@roo-code/cloud"
+} from "@founder-x-ai/types"
+import type { ShareVisibility } from "@founder-x-ai/cloud"
 
 import { Mode } from "./modes"
 
@@ -212,6 +212,10 @@ export interface WebviewMessage {
 		| "createCommand"
 		| "insertTextIntoTextarea"
 		| "showMdmAuthRequiredNotification"
+		| "exaiGuardViolations"
+		| "exaiGuardConfig"
+		| "exaiGuardApplyCorrection"
+		| "exaiGuardClearViolations"
 	text?: string
 	editedMessageContent?: string
 	tab?: "settings" | "history" | "mcp" | "modes" | "chat" | "marketplace" | "account"
@@ -255,6 +259,9 @@ export interface WebviewMessage {
 	visibility?: ShareVisibility // For share visibility
 	hasContent?: boolean // For checkRulesDirectoryResult
 	checkOnly?: boolean // For deleteCustomMode check
+	violations?: any[] // For exaiGuardViolations
+	violationId?: string // For exaiGuardApplyCorrection
+	originalContent?: string // For exaiGuardApplyCorrection
 	codeIndexSettings?: {
 		// Global state settings
 		codebaseIndexEnabled: boolean

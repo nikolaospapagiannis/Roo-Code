@@ -1,6 +1,6 @@
 import { Task } from "../Task"
 import { ClineProvider } from "../../webview/ClineProvider"
-import { ProviderSettings } from "@roo-code/types"
+import { ProviderSettings } from "@founder-x-ai/types"
 import { vi, describe, test, expect, beforeEach, afterEach } from "vitest"
 
 // Mock dependencies
@@ -25,7 +25,7 @@ vi.mock("../../../api", () => ({
 vi.mock("./AutoApprovalHandler")
 
 // Mock TelemetryService
-vi.mock("@roo-code/telemetry", () => ({
+vi.mock("@founder-x-ai/telemetry", () => ({
 	TelemetryService: {
 		instance: {
 			captureTaskCreated: vi.fn(),

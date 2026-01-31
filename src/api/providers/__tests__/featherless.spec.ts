@@ -8,7 +8,7 @@ import {
 	featherlessDefaultModelId,
 	featherlessModels,
 	DEEP_SEEK_DEFAULT_TEMPERATURE,
-} from "@roo-code/types"
+} from "@founder-x-ai/types"
 
 import { FeatherlessHandler } from "../featherless"
 

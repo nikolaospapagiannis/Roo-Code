@@ -45,6 +45,7 @@
 		"only-allow": "^1.2.1",
 		"ovsx": "0.10.4",
 		"prettier": "^3.4.2",
+		"prisma": "^6.18.0",
 		"rimraf": "^6.0.1",
 		"tsx": "^4.19.3",
 		"turbo": "^2.5.3",
@@ -64,5 +65,8 @@
 			"form-data": ">=4.0.4",
 			"bluebird": ">=3.7.2"
 		}
+	},
+	"dependencies": {
+		"@prisma/client": "^6.18.0"
 	}
 }

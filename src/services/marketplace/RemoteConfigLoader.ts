@@ -1,9 +1,9 @@
 import axios from "axios"
 import * as yaml from "yaml"
 import { z } from "zod"
-import { getRooCodeApiUrl } from "@roo-code/cloud"
-import type { MarketplaceItem, MarketplaceItemType } from "@roo-code/types"
-import { modeMarketplaceItemSchema, mcpMarketplaceItemSchema } from "@roo-code/types"
+import { getRooCodeApiUrl } from "@founder-x-ai/cloud"
+import type { MarketplaceItem, MarketplaceItemType } from "@founder-x-ai/types"
+import { modeMarketplaceItemSchema, mcpMarketplaceItemSchema } from "@founder-x-ai/types"
 
 // Response schemas for YAML API responses
 const modeMarketplaceResponse = z.object({

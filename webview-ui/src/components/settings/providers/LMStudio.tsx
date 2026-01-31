@@ -4,15 +4,15 @@ import { Trans } from "react-i18next"
 import { Checkbox } from "vscrui"
 import { VSCodeLink, VSCodeRadio, VSCodeRadioGroup, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 
-import type { ProviderSettings } from "@roo-code/types"
+import type { ProviderSettings } from "@founder-x-ai/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { ExtensionMessage } from "@roo/ExtensionMessage"
+import { ExtensionMessage } from "@founder-x-ai/ExtensionMessage"
 import { useRouterModels } from "@src/components/ui/hooks/useRouterModels"
 import { vscode } from "@src/utils/vscode"
 
 import { inputEventTransform } from "../transforms"
-import { ModelRecord } from "@roo/api"
+import { ModelRecord } from "@founder-x-ai/api"
 
 type LMStudioProps = {
 	apiConfiguration: ProviderSettings
